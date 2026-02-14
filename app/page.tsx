@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navigation } from '@/components/navigation';
+import { SidebarLayout } from '@/components/sidebar';
 import { TaskManagement } from '@/components/task-management';
 import { Scheduler } from '@/components/scheduler';
 import { ChatSystem } from '@/components/chat-system';
@@ -39,27 +39,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      {/* Navigation */}
-      <Navigation activeView={activeView} onViewChange={setActiveView} />
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 md:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {views[activeView]}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
-    </div>
+    <SidebarLayout activeView={activeView} onViewChange={setActiveView}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeView}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          {views[activeView]}
+        </motion.div>
+      </AnimatePresence>
+    </SidebarLayout>
   );
 }
 
