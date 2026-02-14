@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Task } from '@/hooks/use-tasks';
 import { format, differenceInDays, startOfToday, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
 
 interface TimelineViewProps {
   tasks: Task[];
@@ -25,24 +26,19 @@ export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
     const due = parseISO(dueDate);
     const totalDays = differenceInDays(due, created);
     const daysRemaining = getDaysUntilDue(dueDate);
+    if (totalDays === 0) return 100;
     const progress = Math.max(0, Math.min(100, ((totalDays - daysRemaining) / totalDays) * 100));
     return progress;
   };
 
   const priorityColor = {
-    low: 'from-blue-500 to-blue-600',
-    medium: 'from-yellow-500 to-yellow-600',
-    high: 'from-red-500 to-red-600'
-  };
-
-  const statusIcon = {
-    pending: '◯',
-    'in-progress': '◐',
-    completed: '◉'
+    low: 'bg-blue-500',
+    medium: 'bg-yellow-500',
+    high: 'bg-red-500'
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 pr-2">
       {sortedTasks.map((task, idx) => {
         const daysUntil = getDaysUntilDue(task.due_date);
         const isOverdue = daysUntil < 0;
@@ -51,77 +47,89 @@ export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
         return (
           <motion.div
             key={task.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
             onClick={() => onTaskClick?.(task)}
-            className="group cursor-pointer bg-card border border-border rounded-lg p-3 hover:border-accent transition-colors"
+            className="group cursor-pointer relative overflow-hidden rounded-xl bg-muted/30 border border-transparent hover:border-border hover:bg-muted/50 transition-all duration-200 p-4"
           >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{statusIcon[task.status]}</span>
-                  <h4 className="font-semibold text-foreground truncate">{task.title}</h4>
+            <div className="flex items-start gap-4">
+              {/* Status Icon */}
+              <div className="mt-1">
+                {task.status === 'completed' ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                ) : isOverdue ? (
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                ) : (
+                  <Circle className="w-5 h-5 text-muted-foreground" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <h4 className="font-semibold text-base leading-none mb-1 group-hover:text-primary transition-colors">
+                      {task.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {task.subject || 'No Subject'}
+                    </p>
+                  </div>
+                  <div className={cn(
+                    'text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider',
+                    isOverdue 
+                      ? 'bg-red-500/10 text-red-500'
+                      : daysUntil <= 2
+                      ? 'bg-orange-500/10 text-orange-500'
+                      : 'bg-green-500/10 text-green-500'
+                  )}>
+                    {isOverdue 
+                      ? 'Overdue'
+                      : daysUntil === 0 
+                      ? 'Due Today' 
+                      : `${daysUntil} Days Left`}
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{task.subject}</p>
-              </div>
-              <div className={cn(
-                'text-xs font-medium px-2 py-1 rounded',
-                isOverdue 
-                  ? 'bg-red-500/20 text-red-400'
-                  : daysUntil === 0
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : daysUntil <= 7
-                  ? 'bg-orange-500/20 text-orange-400'
-                  : 'bg-green-500/20 text-green-400'
-              )}>
-                {isOverdue 
-                  ? `${Math.abs(daysUntil)}d overdue`
-                  : daysUntil === 0 
-                  ? 'Today' 
-                  : daysUntil === 1
-                  ? 'Tomorrow'
-                  : `${daysUntil}d left`}
-              </div>
-            </div>
 
-            {/* Progress bar */}
-            <div className="mb-2">
-              <div className="h-2 bg-background rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ delay: 0.1, duration: 0.6 }}
-                  className={cn(
-                    'h-full rounded-full bg-gradient-to-r',
-                    priorityColor[task.priority]
-                  )}
-                />
-              </div>
-            </div>
+                {/* Progress Bar */}
+                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden shadow-inner">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ delay: 0.2, duration: 0.8 }}
+                    className={cn('h-full rounded-full opacity-80', priorityColor[task.priority])}
+                  />
+                </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                Due: {format(new Date(task.due_date), 'MMM d')}
-              </span>
-              <span className={cn(
-                'px-2 py-0.5 rounded text-xs',
-                task.priority === 'high' && 'bg-red-500/20 text-red-400',
-                task.priority === 'medium' && 'bg-yellow-500/20 text-yellow-400',
-                task.priority === 'low' && 'bg-blue-500/20 text-blue-400'
-              )}>
-                {task.priority.toUpperCase()}
-              </span>
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{format(new Date(task.due_date), 'MMM d, yyyy')}</span>
+                  </div>
+                  <span className={cn(
+                    'capitalize font-medium',
+                    task.priority === 'high' && 'text-red-500',
+                    task.priority === 'medium' && 'text-yellow-500',
+                    task.priority === 'low' && 'text-blue-500'
+                  )}>
+                    {task.priority} Priority
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
         );
       })}
 
       {sortedTasks.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground text-sm">
-          No tasks to display
+        <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+            <CheckCircle2 className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-semibold">All caught up!</h3>
+            <p className="text-sm text-muted-foreground">No pending tasks found.</p>
+          </div>
         </div>
       )}
     </div>

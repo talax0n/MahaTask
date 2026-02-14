@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Task } from '@/hooks/use-tasks';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths } from 'date-fns';
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameDay, isSameMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface CalendarViewProps {
@@ -21,7 +21,7 @@ export function CalendarView({ tasks, onDateSelect, selectedDate }: CalendarView
   const daysInMonth = getDaysInMonth(currentMonth);
   const startDay = monthStart.getDay();
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   const days = Array.from({ length: startDay }, () => null)
     .concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
 
@@ -33,110 +33,93 @@ export function CalendarView({ tasks, onDateSelect, selectedDate }: CalendarView
 
   const isSelected = (day: number) => {
     if (!selectedDate) return false;
-    return (
-      selectedDate.getDate() === day &&
-      selectedDate.getMonth() === currentMonth.getMonth() &&
-      selectedDate.getFullYear() === currentMonth.getFullYear()
-    );
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    return isSameDay(date, selectedDate);
   };
 
   const isToday = (day: number) => {
     const today = new Date();
-    return (
-      today.getDate() === day &&
-      today.getMonth() === currentMonth.getMonth() &&
-      today.getFullYear() === currentMonth.getFullYear()
-    );
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    return isSameDay(date, today);
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+    <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="text-lg font-semibold text-foreground tracking-tight">
           {format(currentMonth, 'MMMM yyyy')}
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button
-            size="sm"
-            variant="outline"
+            size="icon"
+            variant="ghost"
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 hover:bg-muted rounded-full"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setCurrentMonth(new Date())}
-            className="h-8 px-2 text-xs"
-          >
-            Today
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
+            size="icon"
+            variant="ghost"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 hover:bg-muted rounded-full"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Day labels */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {dayLabels.map(day => (
-          <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
-            {day}
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((day, idx) => (
-          <motion.button
-            key={idx}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: idx * 0.01 }}
-            onClick={() => {
-              if (day) onDateSelect(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day));
-            }}
-            disabled={!day}
-            className={cn(
-              'relative aspect-square rounded-lg text-xs font-medium transition-all',
-              !day && 'invisible',
-              day && 'hover:bg-accent/50 cursor-pointer',
-              isToday(day) && 'ring-2 ring-accent bg-accent/20',
-              isSelected(day) && 'bg-primary text-primary-foreground',
-              day && !isToday(day) && !isSelected(day) && 'bg-background border border-border'
-            )}
-          >
-            <div className="flex flex-col items-center justify-center h-full gap-1 p-1">
-              <span>{day}</span>
-              {day && getTasksForDay(day).length > 0 && (
-                <div className="flex gap-0.5 flex-wrap justify-center">
-                  {getTasksForDay(day).slice(0, 2).map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'w-1.5 h-1.5 rounded-full',
-                        i === 0 ? 'bg-green-400' : 'bg-yellow-400'
-                      )}
-                    />
-                  ))}
-                  {getTasksForDay(day).length > 2 && (
-                    <span className="text-[8px] text-muted-foreground">
-                      +{getTasksForDay(day).length - 2}
-                    </span>
-                  )}
-                </div>
-              )}
+      {/* Calendar Grid */}
+      <div className="w-full">
+        {/* Day labels */}
+        <div className="grid grid-cols-7 mb-4">
+          {dayLabels.map(day => (
+            <div key={day} className="text-center text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
+              {day}
             </div>
-          </motion.button>
-        ))}
+          ))}
+        </div>
+
+        {/* Days */}
+        <div className="grid grid-cols-7 gap-y-2 gap-x-2">
+          {days.map((day, idx) => {
+            const date = day ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day) : null;
+            const dayTasks = day ? getTasksForDay(day) : [];
+            const hasTasks = dayTasks.length > 0;
+            
+            return (
+              <div key={idx} className="relative flex flex-col items-center">
+                {day ? (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onDateSelect(date!)}
+                    className={cn(
+                      'relative flex items-center justify-center w-10 h-10 rounded-full text-sm transition-colors',
+                      isSelected(day) 
+                        ? 'bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20' 
+                        : isToday(day)
+                          ? 'bg-muted text-foreground font-semibold'
+                          : 'text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {day}
+                    {hasTasks && !isSelected(day) && (
+                      <div className="absolute bottom-1.5 flex gap-0.5">
+                        <div className={cn(
+                          "w-1 h-1 rounded-full",
+                          dayTasks.some(t => t.priority === 'high') ? "bg-red-400" : "bg-blue-400"
+                        )} />
+                      </div>
+                    )}
+                  </motion.button>
+                ) : (
+                  <div className="w-10 h-10" />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

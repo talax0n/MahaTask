@@ -40,6 +40,7 @@ export const API_CONFIG = {
     CHAT: {
       GET_GROUP_MESSAGES: (groupId: string) => `/chat/group/${groupId}`,
       GET_DIRECT_MESSAGES: (userId: string) => `/chat/dm/${userId}`,
+      SEND_MESSAGE: '/chat/messages',
     },
     
     // Social endpoints

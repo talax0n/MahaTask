@@ -1,23 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { ChatSystem } from '@/components/chat-system';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function ChatPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    // Initialize or get user ID - for demo purposes, we'll use a fixed ID
-    const demoUserId = 'user_demo_' + Math.random().toString(36).substr(2, 9);
-    setUserId(demoUserId);
-    setIsLoading(false);
-  }, []);
+    if (!loading && !user) {
+      // Optional: Redirect to login if not authenticated
+      // router.push('/login');
+    }
+  }, [user, loading, router]);
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading chat...</p>
@@ -26,7 +29,19 @@ export default function ChatPage() {
     );
   }
 
-  return userId ? <ChatSystem userId={userId} /> : <div className="flex items-center justify-center h-screen bg-background">
-    <p className="text-muted-foreground">Initializing chat...</p>
-  </div>;
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <div className="flex flex-col items-center gap-4 text-center p-4">
+          <h2 className="text-2xl font-bold">Authentication Required</h2>
+          <p className="text-muted-foreground mb-4">Please log in to access the chat.</p>
+          <Button onClick={() => router.push('/login')}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return <ChatSystem userId={user.id} />;
 }

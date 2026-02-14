@@ -29,13 +29,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <SidebarProvider defaultOpen={true}>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
-        >
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
+      >
+        <SidebarProvider defaultOpen={true}>
           <SidebarLayout>{children}</SidebarLayout>
-        </body>
-      </SidebarProvider>
+        </SidebarProvider>
+      </body>
     </html>
   );
 }

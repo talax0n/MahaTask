@@ -9,6 +9,7 @@ interface UseChatReturn {
   error: string | null;
   loadGroupMessages: (groupId: string) => Promise<void>;
   loadDirectMessages: (userId: string) => Promise<void>;
+  sendMessage: (content: string, groupId?: string, directMessageUserId?: string) => Promise<Message | null>;
   clearMessages: () => void;
 }
 
@@ -59,6 +60,31 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
+  const sendMessage = useCallback(async (content: string, groupId?: string, directMessageUserId?: string) => {
+    const token = getToken();
+    if (!token) {
+      setError('Not authenticated');
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = { content, groupId, directMessageUserId };
+      const newMessage = await apiClient.post<Message>(
+        API_CONFIG.ENDPOINTS.CHAT.SEND_MESSAGE,
+        payload
+      );
+      setMessages(prev => [...prev, newMessage]);
+      return newMessage;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
@@ -70,6 +96,7 @@ export function useChat(): UseChatReturn {
     error,
     loadGroupMessages,
     loadDirectMessages,
+    sendMessage,
     clearMessages,
   };
 }
