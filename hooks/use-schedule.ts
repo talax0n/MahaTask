@@ -1,73 +1,86 @@
 import { useState, useCallback, useEffect } from 'react';
-
-export interface ScheduleSlot {
-  id: string;
-  user_id: string;
-  task_id?: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  title: string;
-  type: string;
-  created_at: string;
-}
+import { apiClient, getToken } from '@/lib/api-client';
+import { API_CONFIG } from '@/lib/api-config';
+import type { Schedule, CreateScheduleRequest, UpdateScheduleRequest, CheckConflictsRequest, ConflictCheckResponse } from '@/lib/types';
 
 interface UseScheduleReturn {
-  slots: ScheduleSlot[];
+  schedules: Schedule[];
   loading: boolean;
   error: string | null;
-  createSlot: (slot: Omit<ScheduleSlot, 'id' | 'created_at'>) => Promise<ScheduleSlot | null>;
-  deleteSlot: (id: string) => Promise<boolean>;
-  getSlotsByDate: (date: string) => ScheduleSlot[];
-  refreshSlots: () => Promise<void>;
+  createSchedule: (scheduleData: CreateScheduleRequest) => Promise<Schedule | null>;
+  updateSchedule: (id: string, updates: UpdateScheduleRequest) => Promise<Schedule | null>;
+  deleteSchedule: (id: string) => Promise<boolean>;
+  checkConflicts: (request: CheckConflictsRequest) => Promise<ConflictCheckResponse | null>;
+  refreshSchedules: () => Promise<void>;
 }
 
-export function useSchedule(userId: string | null, date: string): UseScheduleReturn {
-  const [slots, setSlots] = useState<ScheduleSlot[]>([]);
+export function useSchedule(): UseScheduleReturn {
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshSlots = useCallback(async () => {
-    if (!userId || !date) return;
-
+  const refreshSchedules = useCallback(async () => {
+    const token = getToken();
+    if (!token) {
+      setError('Not authenticated');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/schedule?userId=${userId}&date=${date}`);
-      if (!response.ok) throw new Error('Failed to fetch schedule');
-      const data = await response.json();
-      setSlots(data);
+      const data = await apiClient.get<Schedule[]>(API_CONFIG.ENDPOINTS.SCHEDULES.GET_ALL);
+      setSchedules(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [userId, date]);
+  }, []);
 
   useEffect(() => {
-    refreshSlots();
-  }, [refreshSlots]);
+    refreshSchedules();
+  }, [refreshSchedules]);
 
-  const createSlot = useCallback(async (slotData: Omit<ScheduleSlot, 'id' | 'created_at'>) => {
+  const createSchedule = useCallback(async (scheduleData: CreateScheduleRequest) => {
     try {
-      const response = await fetch('/api/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slotData)
-      });
-      if (!response.ok) throw new Error('Failed to create slot');
-      const newSlot = await response.json();
-      setSlots(prev => [...prev, newSlot]);
-      return newSlot;
+      const newSchedule = await apiClient.post<Schedule>(
+        API_CONFIG.ENDPOINTS.SCHEDULES.CREATE,
+        scheduleData
+      );
+      setSchedules(prev => [...prev, newSchedule]);
+      return newSchedule;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       return null;
     }
   }, []);
 
-  const deleteSlot = useCallback(async (id: string) => {
+  const updateSchedule = useCallback(async (id: string, updates: UpdateScheduleRequest) => {
     try {
-      setSlots(prev => prev.filter(s => s.id !== id));
+      const updated = await apiClient.patch<Schedule>(
+        API_CONFIG.ENDPOINTS.SCHEDULES.UPDATE(id),
+        updates
+      );
+      
+      // If the schedule was deleted (progress >= 100), remove it from the list
+      if ((updated as any).deleted) {
+        setSchedules(prev => prev.filter(s => s.id !== id));
+        return updated as any;
+      }
+      
+      setSchedules(prev => prev.map(s => s.id === id ? updated : s));
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    }
+  }, []);
+
+  const deleteSchedule = useCallback(async (id: string) => {
+    try {
+      await apiClient.delete<{ message: string }>(API_CONFIG.ENDPOINTS.SCHEDULES.DELETE(id));
+      setSchedules(prev => prev.filter(s => s.id !== id));
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -75,9 +88,18 @@ export function useSchedule(userId: string | null, date: string): UseScheduleRet
     }
   }, []);
 
-  const getSlotsByDate = useCallback((dateStr: string) => {
-    return slots.filter(s => s.date === dateStr);
-  }, [slots]);
+  const checkConflicts = useCallback(async (request: CheckConflictsRequest) => {
+    try {
+      const result = await apiClient.post<ConflictCheckResponse>(
+        API_CONFIG.ENDPOINTS.SCHEDULES.CHECK_CONFLICTS,
+        request
+      );
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    }
+  }, []);
 
-  return { slots, loading, error, createSlot, deleteSlot, getSlotsByDate, refreshSlots };
+  return { schedules, loading, error, createSchedule, updateSchedule, deleteSchedule, checkConflicts, refreshSchedules };
 }

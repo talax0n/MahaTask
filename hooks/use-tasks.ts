@@ -1,65 +1,50 @@
 import { useState, useCallback, useEffect } from 'react';
+import { apiClient, getToken } from '@/lib/api-client';
+import { API_CONFIG } from '@/lib/api-config';
+import type { Task, CreateTaskRequest, UpdateTaskStatusRequest, UpdateTaskProgressRequest } from '@/lib/types';
 
-export interface Task {
-  id: string;
-  user_id: string;
-  title: string;
-  description?: string;
-  subject: string;
-  due_date: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in-progress' | 'completed';
-  assigned_to?: string;
-  blocker_task_id?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface UseTasKsReturn {
+interface UseTasksReturn {
   tasks: Task[];
   loading: boolean;
   error: string | null;
-  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => Promise<Task | null>;
-  updateTask: (id: string, updates: Partial<Task>) => Promise<Task | null>;
+  createTask: (taskData: CreateTaskRequest) => Promise<Task | null>;
+  updateStatus: (id: string, status: 'IN_PROGRESS' | 'DONE') => Promise<Task | null>;
+  updateProgress: (id: string, progress: number) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<boolean>;
   refreshTasks: () => Promise<void>;
 }
 
-export function useTasks(userId: string | null): UseTasKsReturn {
+export function useTasks(): UseTasksReturn {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshTasks = useCallback(async () => {
-    if (!userId) return;
+    const token = getToken();
+    if (!token) {
+      setError('Not authenticated');
+      return;
+    }
     
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/tasks?userId=${userId}`);
-      if (!response.ok) throw new Error('Failed to fetch tasks');
-      const data = await response.json();
+      const data = await apiClient.get<Task[]>(API_CONFIG.ENDPOINTS.TASKS.GET_ALL);
       setTasks(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     refreshTasks();
   }, [refreshTasks]);
 
-  const createTask = useCallback(async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+  const createTask = useCallback(async (taskData: CreateTaskRequest) => {
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskData)
-      });
-      if (!response.ok) throw new Error('Failed to create task');
-      const newTask = await response.json();
+      const newTask = await apiClient.post<Task>(API_CONFIG.ENDPOINTS.TASKS.CREATE, taskData);
       setTasks(prev => [...prev, newTask]);
       return newTask;
     } catch (err) {
@@ -68,15 +53,26 @@ export function useTasks(userId: string | null): UseTasKsReturn {
     }
   }, []);
 
-  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+  const updateStatus = useCallback(async (id: string, status: 'IN_PROGRESS' | 'DONE') => {
     try {
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      if (!response.ok) throw new Error('Failed to update task');
-      const updated = await response.json();
+      const updated = await apiClient.patch<Task>(
+        API_CONFIG.ENDPOINTS.TASKS.UPDATE_STATUS(id),
+        { status }
+      );
+      setTasks(prev => prev.map(t => t.id === id ? updated : t));
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    }
+  }, []);
+
+  const updateProgress = useCallback(async (id: string, progress: number) => {
+    try {
+      const updated = await apiClient.patch<Task>(
+        API_CONFIG.ENDPOINTS.TASKS.UPDATE_PROGRESS(id),
+        { progress }
+      );
       setTasks(prev => prev.map(t => t.id === id ? updated : t));
       return updated;
     } catch (err) {
@@ -87,8 +83,7 @@ export function useTasks(userId: string | null): UseTasKsReturn {
 
   const deleteTask = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete task');
+      await apiClient.delete<{ message: string }>(API_CONFIG.ENDPOINTS.TASKS.DELETE(id));
       setTasks(prev => prev.filter(t => t.id !== id));
       return true;
     } catch (err) {
@@ -97,5 +92,5 @@ export function useTasks(userId: string | null): UseTasKsReturn {
     }
   }, []);
 
-  return { tasks, loading, error, createTask, updateTask, deleteTask, refreshTasks };
+  return { tasks, loading, error, createTask, updateStatus, updateProgress, deleteTask, refreshTasks };
 }
