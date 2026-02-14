@@ -47,14 +47,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full">
       <Sidebar collapsible="icon" className="border-r-0 bg-card">
         <SidebarHeader>
-          <SidebarMenu>
+          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                <Link href="/dashboard">
+              <SidebarMenuButton size="lg" asChild className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!p-2">
+                <Link href="/dashboard" className="group-data-[collapsible=icon]:justify-center">
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <CheckSquare className="size-5" />
                   </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
+                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                     <span className="truncate font-semibold text-lg">MahaTask</span>
                     <span className="truncate text-xs text-muted-foreground">Academic Dashboard</span>
                   </div>
@@ -66,7 +66,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent className="px-4 py-4">
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu className="gap-2">
+              <SidebarMenu className="gap-2 group-data-[collapsible=icon]:items-center">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href;
@@ -79,14 +79,15 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                         size="lg"
                         className={`
                           transition-all duration-200 ease-in-out rounded-xl
+                          group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!p-0
                           ${isActive 
                             ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:text-primary-foreground" 
                             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground"}
                         `}
                       >
-                        <Link href={item.href} className="flex items-center gap-4 px-2">
+                        <Link href={item.href} className="flex items-center gap-4 px-2 group-data-[collapsible=icon]:!px-0 group-data-[collapsible=icon]:justify-center">
                           <Icon className={`${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"} h-5 w-5`} />
-                          <span className="font-medium text-base">{item.label}</span>
+                          <span className="font-medium text-base group-data-[collapsible=icon]:hidden">{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -97,18 +98,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-border/40">
-          <SidebarMenu>
+          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
                 tooltip="Settings"
                 isActive={pathname === '/settings'}
                 size="lg"
-                className="rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground transition-all duration-200"
+                className="rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground transition-all duration-200 group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!p-0"
               >
-                <Link href="/settings" className="flex items-center gap-4 px-2">
+                <Link href="/settings" className="flex items-center gap-4 px-2 group-data-[collapsible=icon]:!px-0 group-data-[collapsible=icon]:justify-center">
                   <Settings className="h-5 w-5" />
-                  <span className="font-medium text-base">Settings</span>
+                  <span className="font-medium text-base group-data-[collapsible=icon]:hidden">Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
