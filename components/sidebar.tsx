@@ -23,10 +23,12 @@ import {
   PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
+  LayoutDashboard,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 
 const navItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { id: "tasks", label: "Tasks", icon: CheckSquare, href: "/tasks" },
   { id: "scheduler", label: "Scheduler", icon: Calendar, href: "/scheduler" },
   { id: "chat", label: "Study Groups", icon: MessageSquare, href: "/chat" },
@@ -37,6 +39,10 @@ const navItems = [
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const { toggleSidebar, open } = useSidebar();
   const pathname = usePathname();
+
+  if (pathname === '/login' || pathname === '/register') {
+    return <main className="min-h-screen w-full bg-background">{children}</main>;
+  }
 
   return (
     <div className="flex h-screen w-full">
