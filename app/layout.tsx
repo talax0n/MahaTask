@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarLayout } from "@/components/sidebar";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -23,7 +24,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <SidebarProvider defaultOpen={true}>
         <body className="font-sans antialiased bg-background text-foreground">
-          {children}
+          <SidebarLayout>{children}</SidebarLayout>
         </body>
       </SidebarProvider>
     </html>

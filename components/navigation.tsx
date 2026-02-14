@@ -1,5 +1,7 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,19 +15,15 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-interface NavigationProps {
-  activeView: string;
-  onViewChange: (view: string) => void;
-}
-
 const navItems = [
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-  { id: 'scheduler', label: 'Scheduler', icon: Calendar },
-  { id: 'chat', label: 'Study Groups', icon: MessageSquare },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare, href: '/tasks' },
+  { id: 'scheduler', label: 'Scheduler', icon: Calendar, href: '/scheduler' },
+  { id: 'chat', label: 'Study Groups', icon: MessageSquare, href: '/chat' },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
 
-export function Navigation({ activeView, onViewChange }: NavigationProps) {
+export function Navigation() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -45,25 +43,28 @@ export function Navigation({ activeView, onViewChange }: NavigationProps) {
         <div className="flex flex-col gap-1">
           {navItems.map((item, idx) => {
             const Icon = item.icon;
-            const isActive = activeView === item.id;
+            const isActive = pathname === item.href;
 
             return (
-              <motion.button
+              <motion.div
                 key={item.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                onClick={() => onViewChange(item.id)}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground hover:bg-background'
-                )}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </motion.button>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-background'
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
@@ -98,15 +99,13 @@ export function Navigation({ activeView, onViewChange }: NavigationProps) {
         >
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeView === item.id;
+            const isActive = pathname === item.href;
 
             return (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => {
-                  onViewChange(item.id);
-                  setMobileMenuOpen(false);
-                }}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
                   isActive
@@ -116,7 +115,7 @@ export function Navigation({ activeView, onViewChange }: NavigationProps) {
               >
                 <Icon className="w-5 h-5" />
                 <span className="text-sm font-medium">{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </motion.nav>
