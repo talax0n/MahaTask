@@ -40,6 +40,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { TypewriterEffect } from '@/components/ui/typewriter-effect';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -111,13 +112,6 @@ export default function DashboardPage() {
       .slice(0, 3);
   }, [tasks]);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
-
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -149,8 +143,8 @@ export default function DashboardPage() {
       {/* Header Section */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            {getGreeting()}, <span className="text-primary">{user?.name?.split(' ')[0]}</span>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl min-h-[40px]">
+            <TypewriterEffect words={["Welcome", "Bienvenue", "Bienvenido", "Willkommen", "Benvenuto", "Bem-vindo"]} />, <span className="text-primary">{user?.name?.split(' ')[0]}</span>
           </h1>
           <p className="text-muted-foreground">
             Ready to conquer your tasks for today?

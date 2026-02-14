@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, BookOpen, CheckCircle2, Users } from 'lucide-react';
 
+import { TypewriterEffect } from '@/components/ui/typewriter-effect';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -93,7 +95,9 @@ export default function LoginPage() {
       <div className="flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-[400px] space-y-6">
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+            <h1 className="text-3xl font-bold tracking-tight min-h-[40px]">
+              <TypewriterEffect words={["Welcome back", "Bon retour", "Bienvenido de nuevo", "Willkommen zurück", "Bentornato", "Bem-vindo de volta"]} />
+            </h1>
             <p className="text-muted-foreground">
               Enter your email to sign in to your account
             </p>
