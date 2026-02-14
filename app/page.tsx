@@ -7,7 +7,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/tasks');
+    router.replace('/dashboard');
   }, [router]);
 
   return (

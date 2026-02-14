@@ -48,18 +48,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full">
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className={`flex items-center px-2 py-2 ${open ? 'justify-between' : 'justify-center'}`}>
+          <div className="flex items-center justify-between p-2">
             {open && (
-              <h1 className="text-xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold tracking-tight text-primary">
                 MahaTask
               </h1>
             )}
             <button
               onClick={toggleSidebar}
-              className="p-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              className="p-1.5 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ml-auto"
               title={open ? "Collapse sidebar" : "Expand sidebar"}
             >
-              {open ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+              {open ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
             </button>
           </div>
         </SidebarHeader>

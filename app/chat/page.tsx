@@ -26,5 +26,7 @@ export default function ChatPage() {
     );
   }
 
-  return userId && <ChatSystem userId={userId} />;
+  return userId ? <ChatSystem userId={userId} /> : <div className="flex items-center justify-center h-screen bg-background">
+    <p className="text-muted-foreground">Initializing chat...</p>
+  </div>;
 }
