@@ -144,7 +144,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl min-h-[40px]">
-            <TypewriterEffect words={["Welcome", "Bienvenue", "Bienvenido", "Willkommen", "Benvenuto", "Bem-vindo"]} />, <span className="text-primary">{user?.name?.split(' ')[0]}</span>
+            <TypewriterEffect words={["Hi", "您好", "こんにちは", "Bonjour", "안녕하세요", "Ciao"]} />, <span className="text-primary">{user?.name?.split(' ')[0]}!</span>
           </h1>
           <p className="text-muted-foreground">
             Ready to conquer your tasks for today?
