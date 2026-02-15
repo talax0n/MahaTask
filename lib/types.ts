@@ -62,7 +62,7 @@ export interface CreateTaskRequest {
   title: string;
   description?: string;
   priority?: TaskPriority;
-  dueDate?: string;
+  deadline?: string;
   scheduleId?: string;
 }
 

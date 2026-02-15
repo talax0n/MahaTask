@@ -1,33 +1,33 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, BookOpen, CheckCircle2, Users } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, BookOpen, CheckCircle2, Users } from "lucide-react";
 
-import { TypewriterEffect } from '@/components/ui/typewriter-effect';
+import { TypewriterEffect } from "@/components/ui/typewriter-effect";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { login, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
-        title: 'Error',
-        description: 'Please enter both email and password',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
       });
       return;
     }
@@ -36,23 +36,23 @@ export default function LoginPage() {
       const user = await login({ email, password });
       if (user) {
         toast({
-          title: 'Success',
-          description: 'Logged in successfully',
+          title: "Success",
+          description: "Logged in successfully",
         });
-        router.push('/tasks');
+        router.push("/tasks");
       } else {
-         toast({
-          title: 'Login Failed',
-          description: 'Invalid credentials. Please try again.',
-          variant: 'destructive',
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
-       toast({
-          title: 'Login Failed',
-          description: 'An unexpected error occurred',
-          variant: 'destructive',
-        });
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     }
   };
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-col justify-between bg-zinc-900 p-10 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 z-0" />
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] z-0" />
-        
+
         <div className="relative z-10 flex items-center gap-2 text-xl font-bold tracking-tight">
           <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
             <BookOpen className="h-5 w-5" />
@@ -96,7 +96,20 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] space-y-6">
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-3xl font-bold tracking-tight min-h-[40px]">
-              <TypewriterEffect words={["Welcome back", "Bon retour", "Bienvenido de nuevo", "Willkommen zurück", "Bentornato", "Bem-vindo de volta"]} />
+              <TypewriterEffect
+                words={[
+                  "Welcome back!", // English
+                  "欢迎回来!", // Chinese (Huānyíng huílái)
+                  "Bon retour!", // French
+                  "Bienvenido de nuevo!", // Spanish
+                  "おかえりなさい!", // Japanese (Okaerinasai)
+                  "Willkommen zurück!", // German
+                  "어서 오세요!", // Korean (Eoseo oseyo - Polite welcome)
+                  "Bentornato!", // Italian
+                  "다시 오신 것을 환영합니다!", // Korean (Dasi osin geoseul hwanyunghamnida - Formal "Welcome back")
+                  "Bem-vindo de volta!", // Portuguese
+                ]}
+              />
             </h1>
             <p className="text-muted-foreground">
               Enter your email to sign in to your account
@@ -120,8 +133,8 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link 
-                  href="/forgot-password" 
+                <Link
+                  href="/forgot-password"
                   className="text-sm text-primary hover:underline font-medium"
                 >
                   Forgot password?
@@ -156,8 +169,11 @@ export default function LoginPage() {
           </div>
 
           <div className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary hover:underline font-medium">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="text-primary hover:underline font-medium"
+            >
               Sign up
             </Link>
           </div>

@@ -29,7 +29,7 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
-  const [dueDate, setDueDate] = useState('');
+  const [deadline, setDeadline] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +39,7 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
-      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+      deadline: deadline ? new Date(deadline).toISOString() : undefined,
     };
 
     onSubmit(taskData);
@@ -47,7 +47,7 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
     setTitle('');
     setDescription('');
     setPriority('MEDIUM');
-    setDueDate('');
+    setDeadline('');
   };
 
   return (
@@ -93,12 +93,12 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="dueDate">Due Date</Label>
+          <Label htmlFor="deadline">Due Date</Label>
           <Input
-            id="dueDate"
+            id="deadline"
             type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
           />
         </div>
       </div>

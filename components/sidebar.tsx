@@ -46,27 +46,27 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen w-full">
       <Sidebar collapsible="icon" className="border-r-0 bg-card">
-        <SidebarHeader>
-          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+        <SidebarHeader className="transition-all duration-300 group-data-[collapsible=icon]:px-0">
+          <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!p-2">
-                <Link href="/dashboard" className="group-data-[collapsible=icon]:justify-center">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <SidebarMenuButton size="lg" asChild className="transition-all duration-300 ease-in-out group-data-[collapsible=icon]:!rounded-full">
+                <Link href="/dashboard" className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
+                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <CheckSquare className="size-5" />
                   </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold text-lg">MahaTask</span>
-                    <span className="truncate text-xs text-muted-foreground">Academic Dashboard</span>
+                  <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0">
+                    <span className="truncate font-semibold text-lg max-w-[200px]">MahaTask</span>
+                    <span className="truncate text-xs text-muted-foreground max-w-[200px]">Academic Dashboard</span>
                   </div>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <SidebarContent className="px-4 py-4">
+        <SidebarContent className="px-4 py-4 transition-all duration-300 group-data-[collapsible=icon]:px-0">
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu className="gap-2 group-data-[collapsible=icon]:items-center">
+              <SidebarMenu className="gap-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href;
@@ -78,16 +78,16 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                         tooltip={item.label}
                         size="lg"
                         className={`
-                          transition-all duration-200 ease-in-out rounded-xl
-                          group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!p-0
+                          transition-all duration-300 ease-in-out rounded-xl
+                          group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto
                           ${isActive 
-                            ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:text-primary-foreground" 
+                            ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground" 
                             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground"}
                         `}
                       >
-                        <Link href={item.href} className="flex items-center gap-4 px-2 group-data-[collapsible=icon]:!px-0 group-data-[collapsible=icon]:justify-center">
-                          <Icon className={`${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"} h-5 w-5`} />
-                          <span className="font-medium text-base group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        <Link href={item.href} className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
+                          <Icon className={`${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"} h-5 w-5 shrink-0`} />
+                          <span className="font-medium text-base whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 max-w-[200px]">{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -97,19 +97,19 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="p-4 border-t border-border/40">
-          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+        <SidebarFooter className="p-4 border-t border-border/40 transition-all duration-300 group-data-[collapsible=icon]:px-0">
+          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
                 tooltip="Settings"
                 isActive={pathname === '/settings'}
                 size="lg"
-                className="rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground transition-all duration-200 group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!p-0"
+                className="rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground transition-all duration-300 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto"
               >
-                <Link href="/settings" className="flex items-center gap-4 px-2 group-data-[collapsible=icon]:!px-0 group-data-[collapsible=icon]:justify-center">
-                  <Settings className="h-5 w-5" />
-                  <span className="font-medium text-base group-data-[collapsible=icon]:hidden">Settings</span>
+                <Link href="/settings" className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
+                  <Settings className="h-5 w-5 shrink-0" />
+                  <span className="font-medium text-base whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 max-w-[200px]">Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
