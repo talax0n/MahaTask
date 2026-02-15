@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTasks } from '@/hooks/use-tasks';
 import { Task, TaskStatus } from '@/lib/types';
 import { TaskList } from '@/components/task-list';
@@ -137,8 +137,16 @@ export function TaskManagement() {
 
       {/* Content */}
       <div className="min-h-[400px]">
-        {viewMode === 'list' ? (
-          <div className="space-y-4">
+        <AnimatePresence mode="wait">
+          {viewMode === 'list' ? (
+            <motion.div
+              key="list"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
              <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)}>
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -154,15 +162,24 @@ export function TaskManagement() {
               onDeleteTask={handleDelete}
               onEditTask={() => toast.info('Editing tasks is not supported yet')}
             />
-          </div>
-        ) : (
-          <TaskBoard
-            tasks={tasks}
-            onUpdateTask={handleStatusChange}
-            onDeleteTask={handleDelete}
-            onEditTask={() => toast.info('Editing tasks is not supported yet')}
-          />
-        )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="board"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <TaskBoard
+                tasks={tasks}
+                onUpdateTask={handleStatusChange}
+                onDeleteTask={handleDelete}
+                onEditTask={() => toast.info('Editing tasks is not supported yet')}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Create Task Sheet */}

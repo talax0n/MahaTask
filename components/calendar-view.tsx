@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Task } from '@/hooks/use-tasks';
+import { Task } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, isSameDay, isSameMonth } from 'date-fns';
@@ -22,13 +22,23 @@ export function CalendarView({ tasks, onDateSelect, selectedDate }: CalendarView
   const startDay = monthStart.getDay();
 
   const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  const days = Array.from({ length: startDay }, () => null)
-    .concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
+  const days: (number | null)[] = [
+    ...Array.from({ length: startDay }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  ];
 
   const getTasksForDay = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter(t => format(new Date(t.due_date), 'yyyy-MM-dd') === dateStr);
+    return tasks.filter(t => {
+      if (!t.dueDate) return false;
+      try {
+        const taskDate = new Date(t.dueDate);
+        return format(taskDate, 'yyyy-MM-dd') === dateStr;
+      } catch {
+        return false;
+      }
+    });
   };
 
   const isSelected = (day: number) => {
@@ -108,7 +118,7 @@ export function CalendarView({ tasks, onDateSelect, selectedDate }: CalendarView
                       <div className="absolute bottom-1.5 flex gap-0.5">
                         <div className={cn(
                           "w-1 h-1 rounded-full",
-                          dayTasks.some(t => t.priority === 'high') ? "bg-red-400" : "bg-blue-400"
+                          dayTasks.some(t => t.priority === 'HIGH') ? "bg-red-400" : "bg-blue-400"
                         )} />
                       </div>
                     )}
