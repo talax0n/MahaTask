@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Loader2, BookOpen, CheckCircle2, Users } from "lucide-react";
 
 import { TypewriterEffect } from "@/components/ui/typewriter-effect";
@@ -18,16 +18,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { login, loading, error: authError } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Please enter both email and password",
-        variant: "destructive",
       });
       return;
     }
@@ -35,23 +32,18 @@ export default function LoginPage() {
     try {
       const user = await login({ email, password });
       if (user) {
-        toast({
-          title: "Success",
+        toast.success("Success", {
           description: "Logged in successfully",
         });
         router.push("/tasks");
       } else {
-        toast({
-          title: "Login Failed",
+        toast.error("Login Failed", {
           description: authError || "Invalid credentials. Please try again.",
-          variant: "destructive",
         });
       }
     } catch (error) {
-      toast({
-        title: "Login Failed",
+      toast.error("Login Failed", {
         description: "An unexpected error occurred",
-        variant: "destructive",
       });
     }
   };

@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarLayout } from "@/components/sidebar";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { AuthGuard } from "@/components/auth-guard";
 import { AuthProvider } from "@/components/auth-provider";
 import { FloatingChat } from "@/components/floating-chat";
@@ -42,7 +42,7 @@ export default function RootLayout({
               <SidebarLayout>{children}</SidebarLayout>
             </AuthGuard>
           </SidebarProvider>
-          <Toaster />
+          <Toaster richColors position="top-right" />
           <FloatingChat />
         </AuthProvider>
       </body>

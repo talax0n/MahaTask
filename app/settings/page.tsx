@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 
 type SettingsTab = 'profile' | 'account' | 'appearance' | 'notifications';
 
@@ -49,12 +49,10 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
 
   const handleLogout = () => {
     logout();
-    toast({
-      title: "Signed out",
+    toast.success("Signed out", {
       description: "You have been successfully signed out.",
     });
   };

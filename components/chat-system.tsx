@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import type { Message, Friend } from '@/lib/types';
 
 type ConversationType = 'group' | 'direct';
@@ -36,7 +36,6 @@ interface ChatSystemProps {
 }
 
 export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
-  const { toast } = useToast();
   const {
     groups,
     friends,
@@ -131,14 +130,13 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
   useEffect(() => {
     const handleFriendRequest = (data: any) => {
       refreshFriendRequests();
-      toast({
-        title: 'New friend request!',
+      toast.info('New friend request!', {
         description: `${data.senderName || 'Someone'} sent you a friend request.`,
       });
     };
 
     return onFriendRequest(handleFriendRequest);
-  }, [onFriendRequest, refreshFriendRequests, toast]);
+  }, [onFriendRequest, refreshFriendRequests]);
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
@@ -149,8 +147,7 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
       setIsCreateGroupOpen(false);
       setSelectedConversationId(group.id);
       setSelectedConversationType('group');
-      toast({
-        title: 'Group created',
+      toast.success('Group created', {
         description: `${newGroupName} has been created successfully.`,
       });
     }
@@ -200,35 +197,28 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
     try {
       await navigator.clipboard.writeText(userCode);
       setCopiedCode(true);
-      toast({
-        title: 'Code copied!',
+      toast.success('Code copied!', {
         description: 'Your friend code has been copied to clipboard.',
       });
       setTimeout(() => setCopiedCode(false), 2000);
     } catch (error) {
-      toast({
-        title: 'Failed to copy',
+      toast.error('Failed to copy', {
         description: 'Could not copy code to clipboard.',
-        variant: 'destructive',
       });
     }
   };
 
   const handleAddFriend = async () => {
     if (!friendCode.trim()) {
-      toast({
-        title: 'Invalid code',
+      toast.error('Invalid code', {
         description: 'Please enter a valid friend code.',
-        variant: 'destructive',
       });
       return;
     }
 
     if (friendCode === userCode) {
-      toast({
-        title: 'Invalid code',
+      toast.error('Invalid code', {
         description: 'You cannot add yourself as a friend.',
-        variant: 'destructive',
       });
       return;
     }
@@ -236,8 +226,7 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
     const result = await requestFriend({ userCode: friendCode });
 
     if (result) {
-      toast({
-        title: 'Friend request sent!',
+      toast.success('Friend request sent!', {
         description: 'Your friend request has been sent.',
       });
       setFriendCode('');
@@ -252,8 +241,7 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
   const handleAcceptRequest = async (requestId: string) => {
     const success = await acceptRequest(requestId);
     if (success) {
-      toast({
-        title: 'Friend request accepted',
+      toast.success('Friend request accepted', {
         description: 'You are now friends!',
       });
     }
@@ -262,8 +250,7 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
   const handleRejectRequest = async (requestId: string) => {
     const success = await rejectRequest(requestId);
     if (success) {
-      toast({
-        title: 'Friend request rejected',
+      toast.success('Friend request rejected', {
         description: 'The request has been removed.',
       });
     }

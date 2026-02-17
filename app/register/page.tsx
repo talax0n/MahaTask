@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { Loader2, BookOpen, CheckCircle2, Users } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -17,16 +17,13 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const { register, loading, error: authError } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !email || !password) {
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: 'Please fill in all fields',
-        variant: 'destructive',
       });
       return;
     }
@@ -34,23 +31,18 @@ export default function RegisterPage() {
     try {
       const user = await register({ name, email, password });
       if (user) {
-        toast({
-          title: 'Success',
+        toast.success('Success', {
           description: 'Account created successfully',
         });
         router.push('/tasks');
       } else {
-         toast({
-          title: 'Registration Failed',
+         toast.error('Registration Failed', {
           description: authError || 'Could not create account. Please try again.',
-          variant: 'destructive',
         });
       }
     } catch (error) {
-       toast({
-          title: 'Registration Failed',
+       toast.error('Registration Failed', {
           description: 'An unexpected error occurred',
-          variant: 'destructive',
         });
     }
   };

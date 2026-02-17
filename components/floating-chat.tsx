@@ -12,7 +12,7 @@ import { useChat } from '@/hooks/use-chat';
 import { useSocial } from '@/hooks/use-social';
 import { useAuth } from '@/hooks/use-auth';
 import { useWebSocket } from '@/hooks/use-websocket';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import type { Message, Group, Friend } from '@/lib/types';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -52,7 +52,6 @@ export function FloatingChat() {
   const { groups, friends, friendRequests, refreshGroups, refreshFriends, refreshFriendRequests, createGroup } = useSocial();
   const { messages, loadGroupMessages, loadDirectMessages, sendMessage: sendMessageRest, clearMessages } = useChat();
   const { isConnected, sendMessage: sendMessageWs, onMessage, onFriendRequest } = useWebSocket();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -66,14 +65,13 @@ export function FloatingChat() {
   useEffect(() => {
     const handleFriendRequest = (data: any) => {
       refreshFriendRequests();
-      toast({
-        title: 'New friend request!',
+      toast.info('New friend request!', {
         description: `${data.senderName || 'Someone'} sent you a friend request.`,
       });
     };
 
     return onFriendRequest(handleFriendRequest);
-  }, [onFriendRequest, refreshFriendRequests, toast]);
+  }, [onFriendRequest, refreshFriendRequests]);
 
   useEffect(() => {
     if (activeConversation) {
