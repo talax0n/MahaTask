@@ -20,12 +20,15 @@ import {
   Calendar,
   MessageSquare,
   Settings,
+  LogOut,
   PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
   LayoutDashboard,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -38,6 +41,7 @@ const navItems = [
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const { toggleSidebar, open } = useSidebar();
   const pathname = usePathname();
+  const { logout, user } = useAuth();
 
   if (pathname === '/login' || pathname === '/register') {
     return <main className="min-h-screen w-full bg-background">{children}</main>;
@@ -98,7 +102,23 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-border/40 transition-all duration-300 group-data-[collapsible=icon]:px-0">
-          <SidebarMenu>
+          <SidebarMenu className="gap-2">
+            {user && (
+              <SidebarMenuItem>
+                <div className="flex items-center gap-4 px-2 py-2 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
+                  <Avatar className="h-9 w-9 shrink-0 border border-border">
+                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs">
+                      {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0">
+                    <span className="truncate font-semibold">{user.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                  </div>
+                </div>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -111,6 +131,19 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   <Settings className="h-5 w-5 shrink-0" />
                   <span className="font-medium text-base whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 max-w-[200px]">Settings</span>
                 </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Logout"
+                size="lg"
+                onClick={logout}
+                className="rounded-xl hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all duration-300 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto"
+              >
+                <div className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center w-full">
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  <span className="font-medium text-base whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 max-w-[200px]">Logout</span>
+                </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
