@@ -43,8 +43,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
 
-  if (pathname === '/login' || pathname === '/register') {
-    return <main className="min-h-screen w-full bg-background">{children}</main>;
+  if (pathname === '/login' || pathname === '/register' || pathname === '/') {
+    return <main className="h-screen w-full bg-background overflow-auto">{children}</main>;
   }
 
   return (
