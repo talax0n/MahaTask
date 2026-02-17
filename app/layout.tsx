@@ -7,6 +7,7 @@ import { SidebarLayout } from "@/components/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthGuard } from "@/components/auth-guard";
 import { AuthProvider } from "@/components/auth-provider";
+import { FloatingChat } from "@/components/floating-chat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,8 +42,9 @@ export default function RootLayout({
               <SidebarLayout>{children}</SidebarLayout>
             </AuthGuard>
           </SidebarProvider>
+          <Toaster />
+          <FloatingChat />
         </AuthProvider>
-        <Toaster />
       </body>
     </html>
   );
