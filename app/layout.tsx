@@ -4,6 +4,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarLayout } from "@/components/sidebar";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthGuard } from "@/components/auth-guard";
+import { AuthProvider } from "@/components/auth-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +35,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <SidebarProvider defaultOpen={true}>
-          <SidebarLayout>{children}</SidebarLayout>
-        </SidebarProvider>
+        <AuthProvider>
+          <SidebarProvider defaultOpen={true}>
+            <AuthGuard>
+              <SidebarLayout>{children}</SidebarLayout>
+            </AuthGuard>
+          </SidebarProvider>
+        </AuthProvider>
+        <Toaster />
       </body>
     </html>
   );

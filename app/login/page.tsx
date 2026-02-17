@@ -16,7 +16,7 @@ import { TypewriterEffect } from "@/components/ui/typewriter-effect";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, loading } = useAuth();
+  const { login, loading, error: authError } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -43,7 +43,7 @@ export default function LoginPage() {
       } else {
         toast({
           title: "Login Failed",
-          description: "Invalid credentials. Please try again.",
+          description: authError || "Invalid credentials. Please try again.",
           variant: "destructive",
         });
       }

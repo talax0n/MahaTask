@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type SettingsTab = 'profile' | 'account' | 'appearance' | 'notifications';
 
@@ -48,6 +49,15 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
+  };
 
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User, description: 'Manage your public profile' },
@@ -118,7 +128,7 @@ export default function SettingsPage() {
                         <Avatar className="h-20 w-20">
                           <AvatarImage src="/avatars/01.png" alt="@user" />
                           <AvatarFallback className="text-lg">
-                            {user?.username?.[0]?.toUpperCase() || 'U'}
+                            {user?.name?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <Button variant="outline">Change Avatar</Button>
@@ -127,7 +137,7 @@ export default function SettingsPage() {
                       <div className="space-y-4">
                         <div className="grid gap-2">
                           <Label htmlFor="username">Username</Label>
-                          <Input id="username" defaultValue={user?.username || 'user_demo'} />
+                          <Input id="username" defaultValue={user?.name || 'user_demo'} />
                           <p className="text-[0.8rem] text-muted-foreground">
                             This is your public display name. It can be your real name or a pseudonym.
                           </p>
@@ -207,7 +217,7 @@ export default function SettingsPage() {
                                 Sign out of your account on this device.
                               </p>
                             </div>
-                            <Button variant="outline" size="sm" onClick={logout}>
+                            <Button variant="outline" size="sm" onClick={handleLogout}>
                                <LogOut className="mr-2 h-4 w-4" />
                                Sign Out
                             </Button>

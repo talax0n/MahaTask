@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { register, loading } = useAuth();
+  const { register, loading, error: authError } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -42,7 +42,7 @@ export default function RegisterPage() {
       } else {
          toast({
           title: 'Registration Failed',
-          description: 'Could not create account. Please try again.',
+          description: authError || 'Could not create account. Please try again.',
           variant: 'destructive',
         });
       }
