@@ -11,6 +11,8 @@ interface UseWebSocketReturn {
   onTyping: (callback: (data: { userId: string; isTyping: boolean; groupId?: string }) => void) => () => void;
   onFriendRequest: (callback: (data: any) => void) => () => void;
   sendTyping: (isTyping: boolean, groupId?: string, directMessageUserId?: string) => void;
+  joinConversation: (id: string, type: 'group' | 'direct') => void;
+  leaveConversation: (id: string, type: 'group' | 'direct') => void;
 }
 
 export function useWebSocket(): UseWebSocketReturn {
@@ -22,6 +24,8 @@ export function useWebSocket(): UseWebSocketReturn {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  // Track the active room so we can re-join after a reconnect
+  const activeRoomRef = useRef<{ id: string; type: 'group' | 'direct' } | null>(null);
 
   const connect = useCallback(() => {
     const token = getToken();
@@ -46,9 +50,18 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     socket.on('connect', () => {
-      console.log('Socket.IO connected');
+      console.log('✅ Socket.IO connected to:', API_CONFIG.BASE_URL);
       setIsConnected(true);
       reconnectAttemptsRef.current = 0;
+      // Re-join the active room after a reconnect
+      if (activeRoomRef.current) {
+        const { id, type } = activeRoomRef.current;
+        if (type === 'group') {
+          socket.emit('joinGroup', { groupId: id });
+        } else {
+          socket.emit('joinDM', { userId: id });
+        }
+      }
     });
 
     socket.on('receive_message', (message: Message) => {
@@ -73,7 +86,8 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Socket.IO connection error:', error);
+      console.error('❌ Socket.IO connection error:', error);
+      console.error('   Attempting to connect to:', API_CONFIG.BASE_URL);
     });
 
     socket.on('disconnect', (reason) => {
@@ -112,19 +126,9 @@ export function useWebSocket(): UseWebSocketReturn {
   const sendMessage = useCallback((content: string, groupId?: string, directMessageUserId?: string) => {
     if (socketRef.current && socketRef.current.connected) {
       if (groupId) {
-        // Send group message
-        socketRef.current.emit('send_message', {
-          type: 'group',
-          groupId,
-          content,
-        });
+        socketRef.current.emit('sendGroupMessage', { groupId, content });
       } else if (directMessageUserId) {
-        // Send direct message
-        socketRef.current.emit('send_message', {
-          type: 'dm',
-          recipientId: directMessageUserId,
-          content,
-        });
+        socketRef.current.emit('sendDM', { recipientId: directMessageUserId, content });
       }
     } else {
       console.error('Socket.IO is not connected');
@@ -162,6 +166,26 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, []);
 
+  const joinConversation = useCallback((id: string, type: 'group' | 'direct') => {
+    activeRoomRef.current = { id, type };
+    if (socketRef.current?.connected) {
+      if (type === 'group') {
+        socketRef.current.emit('joinGroup', { groupId: id });
+        console.log('Joined group room:', id);
+      } else {
+        socketRef.current.emit('joinDM', { userId: id });
+        console.log('Joined DM room:', id);
+      }
+    }
+  }, []);
+
+  const leaveConversation = useCallback((id: string, _type: 'group' | 'direct') => {
+    if (activeRoomRef.current?.id === id) {
+      activeRoomRef.current = null;
+    }
+    // Backend doesn't have explicit leave events; room membership clears on disconnect
+  }, []);
+
   return {
     isConnected,
     sendMessage,
@@ -169,5 +193,7 @@ export function useWebSocket(): UseWebSocketReturn {
     onTyping,
     onFriendRequest,
     sendTyping,
+    joinConversation,
+    leaveConversation,
   };
 }

@@ -136,6 +136,7 @@ export interface Message {
   content: string;
   groupId?: string;
   directMessageUserId?: string;
+  recipientId?: string; // Backend DM field (alias for directMessageUserId)
   createdAt: string;
   sender?: {
     id: string;

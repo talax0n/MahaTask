@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,11 +47,12 @@ export function FloatingChat() {
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const { user, loading } = useAuth();
   const { groups, friends, friendRequests, refreshGroups, refreshFriends, refreshFriendRequests, createGroup } = useSocial();
   const { messages, loadGroupMessages, loadDirectMessages, sendMessage: sendMessageRest, clearMessages } = useChat();
-  const { isConnected, sendMessage: sendMessageWs, onMessage, onFriendRequest } = useWebSocket();
+  const { isConnected, sendMessage: sendMessageWs, onMessage, onFriendRequest, joinConversation, leaveConversation } = useWebSocket();
 
   useEffect(() => {
     if (user) {
@@ -83,10 +84,24 @@ export function FloatingChat() {
     }
   }, [activeConversation, loadGroupMessages, loadDirectMessages]);
 
+  // Join/leave Socket.IO room when conversation changes so the server routes messages here.
+  // isConnected is included so the join is re-emitted if the socket connects after the conversation was already selected.
+  useEffect(() => {
+    if (activeConversation && isConnected) {
+      joinConversation(activeConversation.id, activeConversation.type);
+      return () => leaveConversation(activeConversation.id, activeConversation.type);
+    }
+  }, [activeConversation, isConnected, joinConversation, leaveConversation]);
+
   // Sync messages from REST API with local state
   useEffect(() => {
     setLocalMessages(messages);
   }, [messages]);
+
+  // Auto-scroll to newest message
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [localMessages]);
 
   // WebSocket real-time message listener
   useEffect(() => {
@@ -95,7 +110,11 @@ export function FloatingChat() {
       if (activeConversation) {
         const isRelevant =
           (activeConversation.type === 'group' && message.groupId === activeConversation.id) ||
-          (activeConversation.type === 'direct' && message.directMessageUserId === activeConversation.id);
+          (activeConversation.type === 'direct' && (
+            message.directMessageUserId === activeConversation.id ||
+            message.recipientId === activeConversation.id ||
+            message.senderId === activeConversation.id
+          ));
 
         if (isRelevant) {
           setLocalMessages(prev => {
@@ -354,6 +373,7 @@ export function FloatingChat() {
                         </motion.div>
                       );
                     })}
+                    <div ref={bottomRef} />
                     {localMessages.length === 0 && (
                       <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-2">
                         <div className="h-16 w-16 rounded-full bg-secondary/50 flex items-center justify-center">

@@ -14,12 +14,10 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ messages, currentUserId, isLoading }: ChatMessagesProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   if (isLoading) {
@@ -34,10 +32,7 @@ export function ChatMessages({ messages, currentUserId, isLoading }: ChatMessage
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className="flex-1 h-full overflow-y-auto p-4 space-y-6"
-    >
+    <div className="flex-1 h-full overflow-y-auto p-4 space-y-6">
       <AnimatePresence mode="popLayout">
         {messages.map((message, idx) => {
           const isOwn = message.senderId === currentUserId;
@@ -100,6 +95,8 @@ export function ChatMessages({ messages, currentUserId, isLoading }: ChatMessage
           );
         })}
       </AnimatePresence>
+
+      <div ref={bottomRef} />
 
       {messages.length === 0 && (
         <motion.div

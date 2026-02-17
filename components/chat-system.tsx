@@ -62,6 +62,8 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
     sendMessage: sendMessageWs,
     onMessage,
     onFriendRequest,
+    joinConversation,
+    leaveConversation,
   } = useWebSocket();
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -93,6 +95,15 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
     }
   }, [selectedConversationId, selectedConversationType, loadGroupMessages, loadDirectMessages]);
 
+  // Join/leave Socket.IO room when conversation changes so the server routes messages here.
+  // isConnected is included so the join is re-emitted if the socket connects after the conversation was already selected.
+  useEffect(() => {
+    if (selectedConversationId && isConnected) {
+      joinConversation(selectedConversationId, selectedConversationType);
+      return () => leaveConversation(selectedConversationId, selectedConversationType);
+    }
+  }, [selectedConversationId, selectedConversationType, isConnected, joinConversation, leaveConversation]);
+
   // Sync messages from REST API with local state
   useEffect(() => {
     setLocalMessages(messages);
@@ -104,7 +115,11 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
       if (!selectedConversationId) return;
       const isRelevant =
         (selectedConversationType === 'group' && message.groupId === selectedConversationId) ||
-        (selectedConversationType === 'direct' && message.directMessageUserId === selectedConversationId);
+        (selectedConversationType === 'direct' && (
+          message.directMessageUserId === selectedConversationId ||
+          message.recipientId === selectedConversationId ||
+          message.senderId === selectedConversationId
+        ));
 
       if (isRelevant) {
         setLocalMessages(prev => {
