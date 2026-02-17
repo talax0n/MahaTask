@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Task } from '@/hooks/use-tasks';
+import type { Task } from '@/lib/types';
 import { format, differenceInDays, startOfToday, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
@@ -13,16 +13,18 @@ interface TimelineViewProps {
 
 export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
   const today = startOfToday();
-  const sortedTasks = [...tasks].sort((a, b) => 
-    new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-  );
+  const sortedTasks = [...tasks]
+    .filter(t => t.dueDate)
+    .sort((a, b) =>
+      new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
+    );
 
   const getDaysUntilDue = (dueDate: string) => {
     return differenceInDays(parseISO(dueDate), today);
   };
 
   const getProgressWidth = (dueDate: string) => {
-    const created = new Date(tasks.find(t => t.due_date === dueDate)?.created_at || new Date());
+    const created = new Date(tasks.find(t => t.dueDate === dueDate)?.createdAt || new Date());
     const due = parseISO(dueDate);
     const totalDays = differenceInDays(due, created);
     const daysRemaining = getDaysUntilDue(dueDate);
@@ -31,18 +33,18 @@ export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
     return progress;
   };
 
-  const priorityColor = {
-    low: 'bg-blue-500',
-    medium: 'bg-yellow-500',
-    high: 'bg-red-500'
+  const priorityColor: Record<string, string> = {
+    LOW: 'bg-blue-500',
+    MEDIUM: 'bg-yellow-500',
+    HIGH: 'bg-red-500'
   };
 
   return (
     <div className="space-y-4 pr-2">
       {sortedTasks.map((task, idx) => {
-        const daysUntil = getDaysUntilDue(task.due_date);
+        const daysUntil = getDaysUntilDue(task.dueDate!);
         const isOverdue = daysUntil < 0;
-        const progress = getProgressWidth(task.due_date);
+        const progress = getProgressWidth(task.dueDate!);
 
         return (
           <motion.div
@@ -56,7 +58,7 @@ export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
             <div className="flex items-start gap-4">
               {/* Status Icon */}
               <div className="mt-1">
-                {task.status === 'completed' ? (
+                {task.status === 'DONE' ? (
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
                 ) : isOverdue ? (
                   <AlertCircle className="w-5 h-5 text-red-500" />
@@ -72,7 +74,7 @@ export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
                       {task.title}
                     </h4>
                     <p className="text-sm text-muted-foreground line-clamp-1">
-                      {task.subject || 'No Subject'}
+                      {task.description || 'No Description'}
                     </p>
                   </div>
                   <div className={cn(
@@ -104,13 +106,13 @@ export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{format(new Date(task.due_date), 'MMM d, yyyy')}</span>
+                    <span>{format(new Date(task.dueDate!), 'MMM d, yyyy')}</span>
                   </div>
                   <span className={cn(
                     'capitalize font-medium',
-                    task.priority === 'high' && 'text-red-500',
-                    task.priority === 'medium' && 'text-yellow-500',
-                    task.priority === 'low' && 'text-blue-500'
+                    task.priority === 'HIGH' && 'text-red-500',
+                    task.priority === 'MEDIUM' && 'text-yellow-500',
+                    task.priority === 'LOW' && 'text-blue-500'
                   )}>
                     {task.priority} Priority
                   </span>

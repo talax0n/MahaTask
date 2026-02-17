@@ -20,16 +20,16 @@ interface SchedulerProps {
 
 export function Scheduler({ userId }: SchedulerProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const { tasks } = useTasks(userId);
-  const { slots } = useSchedule(userId, format(selectedDate, 'yyyy-MM-dd'));
+  const { tasks } = useTasks();
+  const { schedules } = useSchedule();
   const [activeView, setActiveView] = useState<'calendar' | 'daily' | 'timeline'>('calendar');
 
   const upcomingDeadlines = tasks
-    .filter(t => new Date(t.due_date) >= new Date())
-    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+    .filter(t => t.dueDate && new Date(t.dueDate) >= new Date())
+    .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
     .slice(0, 5);
 
-  const todaysTasks = tasks.filter(t => isSameDay(new Date(t.due_date), new Date()));
+  const todaysTasks = tasks.filter(t => t.dueDate && isSameDay(new Date(t.dueDate), new Date()));
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col gap-6 p-6">
@@ -85,7 +85,13 @@ export function Scheduler({ userId }: SchedulerProps) {
               {activeView === 'daily' && (
                 <div className="h-full overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
                   <div className="p-6 h-full overflow-y-auto">
-                    <DailySchedule slots={slots} date={selectedDate} />
+                    <DailySchedule slots={schedules.map(s => ({
+                      id: s.id,
+                      title: s.title,
+                      start_time: s.startTime,
+                      end_time: s.endTime,
+                      type: 'schedule' as const
+                    }))} date={selectedDate} />
                   </div>
                 </div>
               )}
@@ -130,14 +136,14 @@ export function Scheduler({ userId }: SchedulerProps) {
                       >
                         <div className="flex justify-between items-start">
                           <span className="font-medium line-clamp-1">{task.title}</span>
-                          <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'} className="text-[10px] px-1.5 py-0 h-5">
+                          <Badge variant={task.priority === 'HIGH' ? 'destructive' : 'secondary'} className="text-[10px] px-1.5 py-0 h-5">
                             {task.priority}
                           </Badge>
                         </div>
                         <div className="flex justify-between items-center text-xs text-muted-foreground">
-                          <span>{task.subject || 'General'}</span>
-                          <span className={isSameDay(new Date(task.due_date), new Date()) ? 'text-orange-500 font-medium' : ''}>
-                            {format(new Date(task.due_date), 'MMM d, h:mm a')}
+                          <span>{task.description || 'General'}</span>
+                          <span className={isSameDay(new Date(task.dueDate!), new Date()) ? 'text-orange-500 font-medium' : ''}>
+                            {format(new Date(task.dueDate!), 'MMM d, h:mm a')}
                           </span>
                         </div>
                       </motion.div>

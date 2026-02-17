@@ -3,6 +3,14 @@ import { apiClient, getToken } from '@/lib/api-client';
 import { API_CONFIG } from '@/lib/api-config';
 import type { Schedule, CreateScheduleRequest, UpdateScheduleRequest, CheckConflictsRequest, ConflictCheckResponse } from '@/lib/types';
 
+export interface ScheduleSlot {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  type: 'task' | 'schedule';
+}
+
 interface UseScheduleReturn {
   schedules: Schedule[];
   loading: boolean;

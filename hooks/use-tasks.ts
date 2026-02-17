@@ -3,6 +3,9 @@ import { apiClient, getToken } from '@/lib/api-client';
 import { API_CONFIG } from '@/lib/api-config';
 import type { Task, CreateTaskRequest, UpdateTaskStatusRequest, UpdateTaskProgressRequest } from '@/lib/types';
 
+// Re-export Task type for components that need it
+export type { Task };
+
 interface UseTasksReturn {
   tasks: Task[];
   loading: boolean;
