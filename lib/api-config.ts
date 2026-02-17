@@ -1,7 +1,7 @@
 // API Configuration for backend integration
 export const API_CONFIG = {
   // Backend API base URL - adjust this based on your backend port
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   
   // API endpoints
   ENDPOINTS: {

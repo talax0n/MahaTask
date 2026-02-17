@@ -43,5 +43,5 @@ export default function ChatPage() {
     );
   }
 
-  return <ChatSystem userId={user.id} />;
+  return <ChatSystem userId={user.id} userCode={user.userCode} userName={user.name} />;
 }

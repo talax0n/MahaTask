@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search } from 'lucide-react';
+import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { useChat } from '@/hooks/use-chat';
 import { useSocial } from '@/hooks/use-social';
 import { useAuth } from '@/hooks/use-auth';
+import { useWebSocket } from '@/hooks/use-websocket';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Message, Group, Friend } from '@/lib/types';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -44,16 +46,34 @@ export function FloatingChat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
   const { user, loading } = useAuth();
-  const { groups, friends, refreshGroups, createGroup } = useSocial();
-  const { messages, loadGroupMessages, loadDirectMessages, sendMessage, clearMessages } = useChat();
+  const { groups, friends, friendRequests, refreshGroups, refreshFriends, refreshFriendRequests, createGroup } = useSocial();
+  const { messages, loadGroupMessages, loadDirectMessages, sendMessage: sendMessageRest, clearMessages } = useChat();
+  const { isConnected, sendMessage: sendMessageWs, onMessage, onFriendRequest } = useWebSocket();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       refreshGroups();
+      refreshFriends();
+      refreshFriendRequests();
     }
-  }, [user, refreshGroups]);
+  }, [user, refreshGroups, refreshFriends, refreshFriendRequests]);
+
+  // Real-time friend request notification
+  useEffect(() => {
+    const handleFriendRequest = (data: any) => {
+      refreshFriendRequests();
+      toast({
+        title: 'New friend request!',
+        description: `${data.senderName || 'Someone'} sent you a friend request.`,
+      });
+    };
+
+    return onFriendRequest(handleFriendRequest);
+  }, [onFriendRequest, refreshFriendRequests, toast]);
 
   useEffect(() => {
     if (activeConversation) {
@@ -65,16 +85,71 @@ export function FloatingChat() {
     }
   }, [activeConversation, loadGroupMessages, loadDirectMessages]);
 
+  // Sync messages from REST API with local state
+  useEffect(() => {
+    setLocalMessages(messages);
+  }, [messages]);
+
+  // WebSocket real-time message listener
+  useEffect(() => {
+    const handleNewMessage = (message: Message) => {
+      // Add message if it belongs to the active conversation
+      if (activeConversation) {
+        const isRelevant =
+          (activeConversation.type === 'group' && message.groupId === activeConversation.id) ||
+          (activeConversation.type === 'direct' && message.directMessageUserId === activeConversation.id);
+
+        if (isRelevant) {
+          setLocalMessages(prev => {
+            if (prev.some(m => m.id === message.id)) return prev;
+            // Replace matching optimistic message from the same sender with the real one
+            const tempIndex = prev.findIndex(
+              m => m.id.startsWith('temp-') && m.senderId === message.senderId && m.content === message.content
+            );
+            if (tempIndex !== -1) {
+              const next = [...prev];
+              next[tempIndex] = message;
+              return next;
+            }
+            return [...prev, message];
+          });
+        }
+      }
+    };
+
+    return onMessage(handleNewMessage);
+  }, [activeConversation, onMessage]);
+
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversation) return;
 
     const content = messageInput.trim();
     setMessageInput('');
 
-    if (activeConversation.type === 'group') {
-      await sendMessage(content, activeConversation.id);
+    if (isConnected) {
+      // Optimistic insert so the sender sees the message immediately
+      const optimistic: Message = {
+        id: `temp-${Date.now()}`,
+        senderId: user!.id,
+        content,
+        groupId: activeConversation.type === 'group' ? activeConversation.id : undefined,
+        directMessageUserId: activeConversation.type === 'direct' ? activeConversation.id : undefined,
+        createdAt: new Date().toISOString(),
+        sender: { id: user!.id, name: user!.name },
+      };
+      setLocalMessages(prev => [...prev, optimistic]);
+
+      if (activeConversation.type === 'group') {
+        sendMessageWs(content, activeConversation.id);
+      } else {
+        sendMessageWs(content, undefined, activeConversation.id);
+      }
     } else {
-      await sendMessage(content, undefined, activeConversation.id);
+      if (activeConversation.type === 'group') {
+        await sendMessageRest(content, activeConversation.id);
+      } else {
+        await sendMessageRest(content, undefined, activeConversation.id);
+      }
     }
   };
 
@@ -148,9 +223,9 @@ export function FloatingChat() {
             >
               <MessageSquare className="h-6 w-6" />
             </Button>
-            {conversations.some(c => (c.unreadCount ?? 0) > 0) && (
+            {friendRequests.length > 0 && (
               <div className="absolute -top-1 -right-1 h-6 w-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-background">
-                {conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0)}
+                {friendRequests.length}
               </div>
             )}
           </motion.div>
@@ -243,7 +318,7 @@ export function FloatingChat() {
                 {/* Messages Area */}
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-3">
-                    {messages.map((message) => {
+                    {localMessages.map((message) => {
                       const isOwn = message.senderId === user?.id;
                       return (
                         <motion.div
@@ -281,7 +356,7 @@ export function FloatingChat() {
                         </motion.div>
                       );
                     })}
-                    {messages.length === 0 && (
+                    {localMessages.length === 0 && (
                       <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-2">
                         <div className="h-16 w-16 rounded-full bg-secondary/50 flex items-center justify-center">
                           <MessageSquare className="h-8 w-8 text-muted-foreground" />
@@ -414,39 +489,89 @@ export function FloatingChat() {
       <Dialog open={isNewChatOpen} onOpenChange={setIsNewChatOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
+            <DialogTitle>New Conversation</DialogTitle>
             <DialogDescription>
-              Create a study group to collaborate with your peers.
+              Start a direct message with a friend or create a group.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="group-name" className="text-right">
-                Name
+          <div className="space-y-4 py-2">
+            {/* Direct Message - Friends List */}
+            {friends.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  Direct Message
+                </Label>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {friends.map((friend) => (
+                    <button
+                      key={friend.id}
+                      onClick={() => {
+                        setActiveConversation({
+                          id: friend.id,
+                          name: friend.name,
+                          type: 'direct',
+                          avatarUrl: friend.avatarUrl,
+                        });
+                        setIsNewChatOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors text-left"
+                    >
+                      <Avatar className="h-8 w-8 border border-border/50">
+                        <AvatarImage src={friend.avatarUrl} />
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {friend.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 overflow-hidden">
+                        <p className="font-medium text-sm truncate">{friend.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono truncate">{friend.userCode}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/40" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-background px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            {/* Create Group */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Create Group
               </Label>
-              <Input
-                id="group-name"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                placeholder="e.g. CS101 Study Group"
-                className="col-span-3"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCreateGroup();
-                  }
-                }}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="group-name"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g. CS101 Study Group"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateGroup();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleCreateGroup}
+                  disabled={!newGroupName.trim() || isCreatingGroup}
+                  className="shrink-0"
+                >
+                  {isCreatingGroup ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              onClick={handleCreateGroup}
-              disabled={!newGroupName.trim() || isCreatingGroup}
-            >
-              {isCreatingGroup ? 'Creating...' : 'Create Group'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
