@@ -34,8 +34,8 @@ export function TaskList({ tasks, onUpdateTask, onDeleteTask, onEditTask, filter
               />
             ))
           ) : (
-            <div className="text-center py-12 bg-muted/20 rounded-lg border-2 border-dashed border-muted">
-              <p className="text-sm text-muted-foreground">No tasks found</p>
+            <div className="text-center py-12 rounded-xl border-2 border-dashed border-white/5 bg-white/5/50 backdrop-blur-sm">
+              <p className="text-sm font-medium text-white/30">No tasks found</p>
             </div>
           )}
         </AnimatePresence>

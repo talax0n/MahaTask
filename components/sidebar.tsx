@@ -48,29 +48,32 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full">
-      <Sidebar collapsible="icon" className="border-r-0 bg-card">
-        <SidebarHeader className="transition-all duration-300 group-data-[collapsible=icon]:px-0">
+    <div className="flex h-screen w-full relative overflow-hidden">
+      <Sidebar collapsible="icon" className="border-r-0 glass-sidebar z-20">
+        <SidebarHeader className="transition-all duration-300 group-data-[collapsible=icon]:px-0 py-6">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild className="transition-all duration-300 ease-in-out group-data-[collapsible=icon]:!rounded-full">
-                <Link href="/dashboard" className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
-                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <CheckSquare className="size-5" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0">
-                    <span className="truncate font-semibold text-lg max-w-[200px]">MahaTask</span>
-                    <span className="truncate text-xs text-muted-foreground max-w-[200px]">Academic Dashboard</span>
-                  </div>
-                </Link>
-              </SidebarMenuButton>
+              <div className="flex items-center justify-between w-full px-2 transition-all duration-300 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+                <SidebarMenuButton size="lg" asChild className="transition-all duration-300 ease-in-out hover:bg-white/10 group-data-[collapsible=icon]:hidden w-auto mr-2">
+                  <Link href="/dashboard" className="flex items-center gap-4">
+                    <div className="flex aspect-square size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
+                      <CheckSquare className="size-6" />
+                    </div>
+                    <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden">
+                      <span className="truncate font-bold text-xl liquid-text max-w-[200px]">MahaTask</span>
+                      <span className="truncate text-xs text-white/50 max-w-[200px]">Academic Dashboard</span>
+                    </div>
+                  </Link>
+                </SidebarMenuButton>
+                <SidebarTrigger className="text-white/70 hover:text-white hover:bg-white/10 transition-all h-10 w-10" />
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent className="px-4 py-4 transition-all duration-300 group-data-[collapsible=icon]:px-0">
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu className="gap-2">
+              <SidebarMenu className="gap-3">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href;
@@ -82,15 +85,15 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                         tooltip={item.label}
                         size="lg"
                         className={`
-                          transition-all duration-300 ease-in-out rounded-xl
-                          group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto
+                          transition-all duration-300 ease-out rounded-xl
+                          group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-12 group-data-[collapsible=icon]:!p-3 group-data-[collapsible=icon]:mx-auto
                           ${isActive 
-                            ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground" 
-                            : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground"}
+                            ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.15)] border border-white/20 backdrop-blur-md" 
+                            : "hover:bg-white/5 hover:text-white text-white/60 hover:backdrop-blur-sm"}
                         `}
                       >
                         <Link href={item.href} className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
-                          <Icon className={`${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"} h-5 w-5 shrink-0`} />
+                          <Icon className={`${isActive ? "text-white" : "text-white/60 group-hover:text-white"} h-5 w-5 shrink-0 transition-colors`} />
                           <span className="font-medium text-base whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 max-w-[200px]">{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
@@ -101,20 +104,20 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="p-4 border-t border-border/40 transition-all duration-300 group-data-[collapsible=icon]:px-0">
+        <SidebarFooter className="p-4 border-t border-white/5 transition-all duration-300 group-data-[collapsible=icon]:px-0 bg-black/10 backdrop-blur-sm">
           <SidebarMenu className="gap-2">
             {user && (
               <SidebarMenuItem>
                 <div className="flex items-center gap-4 px-2 py-2 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
-                  <Avatar className="h-9 w-9 shrink-0 border border-border">
+                  <Avatar className="h-10 w-10 shrink-0 border-2 border-white/10 shadow-lg">
                     <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs">
+                    <AvatarFallback className="bg-gradient-to-br from-pink-500 to-rose-500 text-white font-bold text-xs">
                       {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0">
-                    <span className="truncate font-semibold">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                    <span className="truncate font-semibold text-white">{user.name}</span>
+                    <span className="truncate text-xs text-white/50">{user.email}</span>
                   </div>
                 </div>
               </SidebarMenuItem>
@@ -125,7 +128,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 tooltip="Settings"
                 isActive={pathname === '/settings'}
                 size="lg"
-                className="rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground transition-all duration-300 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto"
+                className="rounded-xl hover:bg-white/5 hover:text-white text-white/60 transition-all duration-300 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto"
               >
                 <Link href="/settings" className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
                   <Settings className="h-5 w-5 shrink-0" />
@@ -138,7 +141,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 tooltip="Logout"
                 size="lg"
                 onClick={logout}
-                className="rounded-xl hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all duration-300 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto"
+                className="rounded-xl hover:bg-red-500/10 hover:text-red-400 text-white/60 transition-all duration-300 group-data-[collapsible=icon]:!rounded-full group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto"
               >
                 <div className="flex items-center gap-4 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center w-full">
                   <LogOut className="h-5 w-5 shrink-0" />
@@ -149,12 +152,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-background">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-        </header>
-        <div className="flex-1 overflow-auto">
-          <div className="p-6 md:p-8 max-w-7xl mx-auto">{children}</div>
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-transparent z-10">
+        <div className="flex-1 overflow-auto scroll-smooth">
+          <div className="p-6 md:p-10 max-w-7xl mx-auto">{children}</div>
         </div>
       </main>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export const TypewriterEffect = ({
   words,
@@ -19,7 +20,7 @@ export const TypewriterEffect = ({
   useEffect(() => {
     const typeSpeed = 100;
     const deleteSpeed = 50;
-    const pauseTime = 5000;
+    const pauseTime = 3000;
 
     const handleTyping = () => {
       const fullText = words[currentWordIndex];
@@ -52,7 +53,7 @@ export const TypewriterEffect = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
-        className={`inline-block h-[1em] w-[2px] bg-primary ml-1 align-middle ${cursorClassName}`}
+        className={cn("inline-block h-[1em] w-[2px] bg-primary ml-1 align-middle", cursorClassName)}
       />
     </span>
   );

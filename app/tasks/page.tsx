@@ -4,8 +4,14 @@ import { TaskManagement } from '@/components/task-management';
 
 export default function TasksPage() {
   return (
-    <div className="container mx-auto py-6">
-      <TaskManagement />
+    <div className="space-y-8 relative min-h-screen">
+      {/* Ambient Glows */}
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="relative z-10 container mx-auto py-6">
+        <TaskManagement />
+      </div>
     </div>
   );
 }

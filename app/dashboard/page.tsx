@@ -1,14 +1,13 @@
 "use client";
 
-import { useAuth } from '@/hooks/use-auth';
-import { useTasks } from '@/hooks/use-tasks';
-import { useSchedule } from '@/hooks/use-schedule';
-import { useSocial } from '@/hooks/use-social';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { useAuth } from "@/hooks/use-auth";
+import { useTasks } from "@/hooks/use-tasks";
+import { useSchedule } from "@/hooks/use-schedule";
+import { useSocial } from "@/hooks/use-social";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   Clock,
@@ -19,96 +18,105 @@ import {
   Sparkles,
   AlertCircle,
   LayoutDashboard,
-  BookOpen,
   Target,
-  Zap
-} from 'lucide-react';
-import { useMemo } from 'react';
-import { format, isToday, isTomorrow, isPast, parseISO, differenceInHours } from 'date-fns';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
+  Zap,
+  MoreHorizontal,
+  Settings,
+} from "lucide-react";
+import { useMemo } from "react";
+import {
+  format,
+  isToday,
+  isTomorrow,
+  isPast,
+  parseISO,
+  differenceInHours,
+} from "date-fns";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   RadialBar,
   RadialBarChart,
   Label,
   PolarRadiusAxis,
   PolarGrid,
-} from "recharts"
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import { TypewriterEffect } from '@/components/ui/typewriter-effect';
+  PolarAngleAxis,
+} from "recharts";
+import { ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { TypewriterEffect } from "@/components/ui/typewriter-effect";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { tasks, loading: tasksLoading } = useTasks();
   const { schedules, loading: schedulesLoading } = useSchedule();
-  const { groups, friends } = useSocial();
+  const { groups } = useSocial();
 
   // Calculate stats
   const stats = useMemo(() => {
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'DONE').length;
-    const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS').length;
-    const todoTasks = tasks.filter(t => t.status === 'TODO').length;
+    const completedTasks = tasks.filter((t) => t.status === "DONE").length;
+    const inProgressTasks = tasks.filter(
+      (t) => t.status === "IN_PROGRESS",
+    ).length;
+    const todoTasks = tasks.filter((t) => t.status === "TODO").length;
 
-    const upcomingDeadlines = tasks.filter(t => {
-      if (!t.dueDate) return false;
-      const dueDate = parseISO(t.dueDate);
-      return !isPast(dueDate) && t.status !== 'DONE';
-    }).length;
-
-    const todaySchedules = schedules.filter(s => isToday(parseISO(s.startTime)));
-
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const todaySchedules = schedules.filter((s) =>
+      isToday(parseISO(s.startTime)),
+    );
+    const completionRate =
+      totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return {
       totalTasks,
       completedTasks,
       inProgressTasks,
       todoTasks,
-      upcomingDeadlines,
       todaySchedules: todaySchedules.length,
       completionRate,
     };
   }, [tasks, schedules]);
 
   // Chart Data for Radial Bar (Completion)
-  const chartData = useMemo(() => [
-    { browser: "safari", visitors: stats.completionRate, fill: "var(--color-safari)" },
-  ], [stats.completionRate]);
+  const chartData = useMemo(
+    () => [
+      {
+        browser: "safari",
+        visitors: stats.completionRate,
+        fill: "var(--color-safari)",
+      },
+    ],
+    [stats.completionRate],
+  );
 
   const chartConfig = {
-    visitors: {
-      label: "Completion",
-    },
-    safari: {
-      label: "Safari",
-      color: "hsl(var(--primary))",
-    },
-  } satisfies ChartConfig
+    visitors: { label: "Completion" },
+    safari: { label: "Safari", color: "hsl(var(--primary))" },
+  } satisfies ChartConfig;
 
   // Get today's schedule
   const todaySchedule = useMemo(() => {
     return schedules
-      .filter(s => isToday(parseISO(s.startTime)))
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-      .slice(0, 4);
+      .filter((s) => isToday(parseISO(s.startTime)))
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      )
+      .slice(0, 3);
   }, [schedules]);
 
   // Get urgent tasks
   const urgentTasks = useMemo(() => {
     return tasks
-      .filter(t => {
-        if (!t.dueDate || t.status === 'DONE') return false;
+      .filter((t) => {
+        if (!t.dueDate || t.status === "DONE") return false;
         const dueDate = parseISO(t.dueDate);
         const hoursUntilDue = differenceInHours(dueDate, new Date());
         return hoursUntilDue <= 72 && hoursUntilDue >= 0;
       })
-      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+      .sort(
+        (a, b) =>
+          new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime(),
+      )
       .slice(0, 3);
   }, [tasks]);
 
@@ -116,49 +124,86 @@ export default function DashboardPage() {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+      transition: { staggerChildren: 0.1 },
+    },
   };
 
   const item = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    show: { opacity: 1, y: 0 },
   };
 
   if (tasksLoading || schedulesLoading) {
     return (
       <div className="flex h-[50vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground animate-pulse">Loading workspace...</p>
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+          <p className="text-white/60 animate-pulse font-light tracking-wide">
+            Loading workspace...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 p-1 md:p-2">
+    <div className="space-y-8 relative">
+      {/* Ambient Glows */}
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
+
       {/* Header Section */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl min-h-[40px]">
-            <TypewriterEffect words={["Hi", "您好", "こんにちは", "Bonjour", "안녕하세요", "Ciao"]} />, <span className="text-primary">{user?.name?.split(' ')[0]}!</span>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between relative z-10">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-white/60 text-sm font-medium uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span>Online Status</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white drop-shadow-lg min-h-[60px] flex items-center flex-wrap gap-x-2">
+            <TypewriterEffect
+              words={[
+                "Hi,",
+                "您好,",
+                "Bonjour,",
+                "Ciao,",
+                "こんにちは,",
+                "Hola,",
+                "Guten Tag,",
+                "Namaste,",
+              ]}
+              className="text-white"
+              cursorClassName="bg-blue-400"
+            />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300">
+              {user?.name?.split(" ")[0]}!
+            </span>
           </h1>
-          <p className="text-muted-foreground">
-            Ready to conquer your tasks for today?
+          <p className="text-white/70 max-w-lg text-lg font-light leading-relaxed">
+            You have{" "}
+            <span className="font-semibold text-white">
+              {stats.inProgressTasks} active tasks
+            </span>{" "}
+            and{" "}
+            <span className="font-semibold text-white">
+              {stats.todaySchedules} events
+            </span>{" "}
+            scheduled for today.
           </p>
         </div>
+
         <div className="flex items-center gap-4">
-          <div className="hidden md:block text-right">
-             <p className="text-sm font-medium">{format(new Date(), 'EEEE')}</p>
-             <p className="text-2xl font-bold text-primary">{format(new Date(), 'd MMMM')}</p>
+          <div className="glass-panel px-4 py-2 rounded-2xl flex flex-col items-end">
+            <span className="text-xs text-white/50 font-medium uppercase tracking-wider">
+              {format(new Date(), "EEEE")}
+            </span>
+            <span className="text-2xl font-bold text-white">
+              {format(new Date(), "d MMM")}
+            </span>
           </div>
-          <Avatar className="h-12 w-12 border-2 border-primary/20 transition-transform hover:scale-105">
+          <Avatar className="h-14 w-14 border-2 border-white/20 shadow-xl ring-2 ring-white/10 transition-transform hover:scale-105 cursor-pointer">
             <AvatarImage src={user?.avatarUrl} />
-            <AvatarFallback className="bg-primary/10 text-primary text-lg">
-              {user?.name?.charAt(0) || 'U'}
+            <AvatarFallback className="bg-black/40 backdrop-blur-md text-white">
+              {user?.name?.charAt(0) || "U"}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -168,91 +213,132 @@ export default function DashboardPage() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 relative z-10"
       >
         <motion.div variants={item}>
-          <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-card to-blue-500/5 shadow-sm hover:shadow-md transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-              <Target className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTasks}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.todoTasks} pending
+          <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity">
+              <Target className="h-6 w-6 text-blue-300" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-white/60 uppercase tracking-wide">
+                Total Tasks
               </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        <motion.div variants={item}>
-          <Card className="border-l-4 border-l-green-500 bg-gradient-to-br from-card to-green-500/5 shadow-sm hover:shadow-md transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedTasks}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.completionRate}% success rate
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="border-l-4 border-l-amber-500 bg-gradient-to-br from-card to-amber-500/5 shadow-sm hover:shadow-md transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-              <Zap className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.inProgressTasks}</div>
-              <p className="text-xs text-muted-foreground">
-                Active tasks
-              </p>
-            </CardContent>
-          </Card>
+              <div className="text-4xl font-bold text-white tracking-tight">
+                {stats.totalTasks}
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-400 w-[70%]"
+                  style={{
+                    width: `${(stats.todoTasks / stats.totalTasks) * 100}%`,
+                  }}
+                />
+              </div>
+              <span className="text-xs text-blue-300 font-medium whitespace-nowrap">
+                {stats.todoTasks} left
+              </span>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div variants={item}>
-          <Card className="border-l-4 border-l-purple-500 bg-gradient-to-br from-card to-purple-500/5 shadow-sm hover:shadow-md transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Study Groups</CardTitle>
-              <Users className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{groups.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Collaborative spaces
+          <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity">
+              <CheckCircle2 className="h-6 w-6 text-green-300" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-white/60 uppercase tracking-wide">
+                Completed
               </p>
-            </CardContent>
-          </Card>
+              <div className="text-4xl font-bold text-white tracking-tight">
+                {stats.completedTasks}
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-green-300 text-xs font-medium gap-1">
+              <TrendingUp className="h-3 w-3" />
+              <span>{stats.completionRate}% completion rate</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity">
+              <Zap className="h-6 w-6 text-amber-300" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-white/60 uppercase tracking-wide">
+                In Progress
+              </p>
+              <div className="text-4xl font-bold text-white tracking-tight">
+                {stats.inProgressTasks}
+              </div>
+            </div>
+            <div className="mt-4 flex -space-x-2 overflow-hidden">
+              {/* Placeholder avatars for "people working on this" effect */}
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="inline-block h-6 w-6 rounded-full ring-2 ring-black bg-white/20 backdrop-blur-sm"
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity">
+              <Users className="h-6 w-6 text-purple-300" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-white/60 uppercase tracking-wide">
+                Study Groups
+              </p>
+              <div className="text-4xl font-bold text-white tracking-tight">
+                {groups.length}
+              </div>
+            </div>
+            <div className="mt-4">
+              <Link
+                href="/chat"
+                className="text-xs text-purple-300 hover:text-purple-200 flex items-center gap-1 font-medium transition-colors"
+              >
+                Open Hub <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 relative z-10">
         {/* Progress Chart */}
-        <motion.div 
-          className="col-span-4 lg:col-span-3"
+        <motion.div
+          className="col-span-4 lg:col-span-3 h-full"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="h-full flex flex-col bg-card/50 backdrop-blur-sm">
-            <CardHeader className="items-center pb-0">
-              <CardTitle>Productivity Pulse</CardTitle>
-              <CardDescription>Task completion status</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 pb-0">
+          <div className="glass-panel rounded-[2.5rem] p-6 h-full flex flex-col justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-1">
+                Productivity Pulse
+              </h3>
+              <p className="text-sm text-white/50">Your daily task momentum</p>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center py-4">
               <ChartContainer
                 config={chartConfig}
-                className="mx-auto aspect-square max-h-[250px]"
+                className="mx-auto aspect-square w-full max-w-[250px]"
               >
                 <RadialBarChart
                   data={chartData}
-                  startAngle={0}
-                  endAngle={stats.completionRate * 3.6}
+                  startAngle={-90}
+                  endAngle={270}
                   innerRadius={80}
                   outerRadius={110}
                 >
@@ -260,11 +346,32 @@ export default function DashboardPage() {
                     gridType="circle"
                     radialLines={false}
                     stroke="none"
-                    className="first:fill-muted last:fill-background"
+                    className="first:fill-white/5 last:fill-transparent"
                     polarRadius={[86, 74]}
                   />
-                  <RadialBar dataKey="visitors" background cornerRadius={10} />
-                  <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                  <PolarAngleAxis
+                    type="number"
+                    domain={[0, 100]}
+                    dataKey="visitors"
+                    tick={false}
+                  />
+                  <RadialBar
+                    dataKey="visitors"
+                    background={{ fill: "rgba(255, 255, 255, 0.05)" }}
+                    cornerRadius={10}
+                    fill="url(#productivity-gradient)"
+                  />
+                  <defs>
+                    <linearGradient id="productivity-gradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#818cf8" />
+                      <stop offset="100%" stopColor="#c084fc" />
+                    </linearGradient>
+                  </defs>
+                  <PolarRadiusAxis
+                    tick={false}
+                    tickLine={false}
+                    axisLine={false}
+                  >
                     <Label
                       content={({ viewBox }) => {
                         if (viewBox && "cx" in viewBox && "cy" in viewBox) {
@@ -278,197 +385,231 @@ export default function DashboardPage() {
                               <tspan
                                 x={viewBox.cx}
                                 y={viewBox.cy}
-                                className="fill-foreground text-4xl font-bold"
+                                className="fill-white text-4xl font-bold"
                               >
                                 {stats.completionRate}%
                               </tspan>
                               <tspan
                                 x={viewBox.cx}
                                 y={(viewBox.cy || 0) + 24}
-                                className="fill-muted-foreground"
+                                className="fill-white/50 text-xs uppercase tracking-widest"
                               >
-                                Completed
+                                Efficiency
                               </tspan>
                             </text>
-                          )
+                          );
                         }
                       }}
                     />
                   </PolarRadiusAxis>
                 </RadialBarChart>
               </ChartContainer>
-            </CardContent>
-             <div className="p-6 pt-0 text-center text-sm text-muted-foreground">
-               <span className="text-primary font-medium">{stats.completedTasks}</span> completed out of {stats.totalTasks} total tasks.
             </div>
-          </Card>
+
+            <div className="text-center">
+              <p className="text-sm text-white/70">
+                You've completed{" "}
+                <span className="text-white font-bold">
+                  {stats.completedTasks}
+                </span>{" "}
+                tasks today. Keep it up!
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* Today's Schedule */}
-        <motion.div 
-          className="col-span-4"
+        <motion.div
+          className="col-span-4 h-full"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="h-full flex flex-col bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5 text-primary" />
-                    Today's Schedule
-                  </CardTitle>
-                  <CardDescription>
-                    You have {stats.todaySchedules} events today
-                  </CardDescription>
-                </div>
-                <Link href="/scheduler">
-                   <Button variant="outline" size="sm" className="hidden sm:flex">View Calendar</Button>
-                </Link>
+          <div className="glass-panel rounded-[2.5rem] p-6 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5 text-pink-300" />
+                  Today's Flow
+                </h3>
+                <p className="text-sm text-white/50">Upcoming events</p>
               </div>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <div className="space-y-4">
-                {todaySchedule.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                    <div className="rounded-full bg-muted p-3 mb-3">
-                       <CalendarIcon className="h-6 w-6 opacity-50" />
-                    </div>
-                    <p>No events scheduled for today.</p>
-                    <p className="text-sm">Time to focus on your tasks!</p>
+              <Link href="/scheduler">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/50 hover:text-white hover:bg-white/10 rounded-full"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="space-y-3 flex-1">
+              {todaySchedule.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-white/40 space-y-4">
+                  <div className="p-4 rounded-full bg-white/5 border border-white/5">
+                    <Sparkles className="h-8 w-8 opacity-50" />
                   </div>
-                ) : (
-                  todaySchedule.map((schedule, i) => (
-                    <div
-                      key={schedule.id}
-                      className="group flex items-center gap-4 rounded-lg border p-3 transition-colors hover:bg-muted/50 hover:border-primary/50"
-                    >
-                      <div className="flex flex-col items-center justify-center rounded-md border bg-background p-2 w-14 h-14 shrink-0">
-                         <span className="text-xs font-medium text-muted-foreground">
-                           {format(parseISO(schedule.startTime), 'a')}
-                         </span>
-                         <span className="text-lg font-bold text-primary">
-                           {format(parseISO(schedule.startTime), 'h:mm')}
-                         </span>
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <p className="font-medium leading-none truncate">{schedule.title}</p>
-                        <div className="flex items-center text-xs text-muted-foreground gap-2">
-                          <Clock className="h-3 w-3" />
-                          <span>
-                            {format(parseISO(schedule.startTime), 'h:mm a')} - {format(parseISO(schedule.endTime), 'h:mm a')}
-                          </span>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="hidden sm:flex shrink-0">
-                        {schedule.type}
-                      </Badge>
+                  <p>No events today. Enjoy your free time!</p>
+                </div>
+              ) : (
+                todaySchedule.map((schedule, i) => (
+                  <div
+                    key={schedule.id}
+                    className="group flex items-center gap-4 rounded-2xl border border-white/5 bg-white/5 p-4 transition-all hover:bg-white/10 hover:border-white/10 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="flex flex-col items-center justify-center rounded-xl bg-white/5 p-2 w-16 h-16 shrink-0 backdrop-blur-sm border border-white/5">
+                      <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                        {format(parseISO(schedule.startTime), "a")}
+                      </span>
+                      <span className="text-xl font-bold text-white">
+                        {format(parseISO(schedule.startTime), "h:mm")}
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white leading-tight truncate text-lg mb-1">
+                        {schedule.title}
+                      </p>
+                      <div className="flex items-center text-xs text-white/50 gap-3">
+                        <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
+                          <Clock className="h-3 w-3" />
+                          {format(parseISO(schedule.startTime), "h:mm")} -{" "}
+                          {format(parseISO(schedule.endTime), "h:mm")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-2 w-2 rounded-full bg-pink-400 shadow-[0_0_10px_rgba(244,114,182,0.5)]" />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </motion.div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 relative z-10 pb-8">
         {/* Urgent Tasks */}
-        <motion.div 
+        <motion.div
           className="col-span-4 lg:col-span-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card className="h-full bg-gradient-to-br from-red-500/5 to-transparent border-red-500/20">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-red-500">
-                  <AlertCircle className="h-5 w-5" />
-                  Urgent Attention
-                </CardTitle>
-                <Link href="/tasks">
-                  <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-500/10">View All</Button>
-                </Link>
+          <div className="glass-panel rounded-[2.5rem] p-6 h-full border-l-4 border-l-red-400/50">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  Priority Focus
+                </h3>
+                <p className="text-sm text-white/50">Due in 72 hours</p>
               </div>
-              <CardDescription>Tasks due within the next 72 hours</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                 {urgentTasks.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                      <CheckCircle2 className="h-8 w-8 text-green-500 mb-2 opacity-80" />
-                      <p>You're all caught up! No urgent tasks.</p>
+              <Link href="/tasks">
+                <Button
+                  variant="ghost"
+                  className="text-xs text-white/50 hover:text-white hover:bg-white/10 rounded-full h-8"
+                >
+                  View All Tasks
+                </Button>
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {urgentTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-white/40">
+                  <p>You're clear! No urgent deadlines.</p>
+                </div>
+              ) : (
+                urgentTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
+                  >
+                    <div
+                      className={`h-3 w-3 rounded-full shadow-lg ${task.priority === "HIGH" ? "bg-red-500 shadow-red-500/50" : "bg-amber-500 shadow-amber-500/50"}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-white truncate">
+                        {task.title}
+                      </p>
+                      <p className="text-xs text-white/40 mt-0.5">
+                        Due {format(parseISO(task.dueDate!), "MMM d, h:mm a")}
+                      </p>
                     </div>
-                 ) : (
-                   urgentTasks.map(task => (
-                     <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg bg-card border hover:border-red-500/40 transition-all">
-                       <div className={`mt-1 h-2 w-2 rounded-full ${task.priority === 'HIGH' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                       <div className="flex-1 space-y-1">
-                         <p className="font-medium leading-none">{task.title}</p>
-                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                           <CalendarIcon className="h-3 w-3" />
-                           <span className={isPast(parseISO(task.dueDate!)) ? 'text-red-500 font-bold' : ''}>
-                             Due {format(parseISO(task.dueDate!), 'MMM d, h:mm a')}
-                           </span>
-                         </div>
-                       </div>
-                       {task.progress > 0 && (
-                          <div className="w-16 text-right">
-                             <span className="text-xs font-bold text-muted-foreground">{task.progress}%</span>
-                             <Progress value={task.progress} className="h-1 mt-1 bg-red-500/10" indicatorClassName="bg-red-500" />
-                          </div>
-                       )}
-                     </div>
-                   ))
-                 )}
-              </div>
-            </CardContent>
-          </Card>
+                    {task.progress > 0 && (
+                      <div className="w-24 text-right hidden sm:block">
+                        <span className="text-xs font-bold text-white/60">
+                          {task.progress}%
+                        </span>
+                        <Progress
+                          value={task.progress}
+                          className="h-1.5 mt-1 bg-white/10"
+                          indicatorClassName="bg-white/80"
+                        />
+                      </div>
+                    )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-full text-white/30 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </motion.div>
-        
-        {/* Social / Quick Actions */}
-        <motion.div 
+
+        {/* Quick Actions Grid */}
+        <motion.div
           className="col-span-4 lg:col-span-3"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <Card className="h-full flex flex-col">
-             <CardHeader>
-               <CardTitle className="flex items-center gap-2">
-                 <Sparkles className="h-5 w-5 text-amber-500" />
-                 Quick Actions
-               </CardTitle>
-             </CardHeader>
-             <CardContent className="grid grid-cols-2 gap-3">
-                <Link href="/tasks">
-                  <Button variant="outline" className="w-full h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 transition-all">
-                    <LayoutDashboard className="h-6 w-6 text-primary" />
-                    <span>Manage Tasks</span>
-                  </Button>
-                </Link>
-                <Link href="/scheduler">
-                  <Button variant="outline" className="w-full h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 transition-all">
-                    <CalendarIcon className="h-6 w-6 text-primary" />
-                    <span>Calendar</span>
-                  </Button>
-                </Link>
-                <Link href="/chat">
-                  <Button variant="outline" className="w-full h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 transition-all">
-                    <Users className="h-6 w-6 text-primary" />
-                    <span>Study Groups</span>
-                  </Button>
-                </Link>
-                <Link href="/settings">
-                   <Button variant="outline" className="w-full h-24 flex flex-col gap-2 hover:border-primary hover:bg-primary/5 transition-all">
-                     <BookOpen className="h-6 w-6 text-primary" />
-                     <span>Settings</span>
-                   </Button>
-                </Link>
-             </CardContent>
-          </Card>
+          <div className="h-full grid grid-cols-2 gap-4">
+            <Link href="/tasks" className="col-span-1">
+              <div className="glass-panel rounded-[2rem] p-4 h-32 flex flex-col items-center justify-center gap-3 hover:bg-white/10 hover:scale-[1.02] transition-all cursor-pointer group">
+                <div className="p-3 rounded-full bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                  <LayoutDashboard className="h-6 w-6 text-blue-300" />
+                </div>
+                <span className="text-sm font-medium text-white/80">Tasks</span>
+              </div>
+            </Link>
+            <Link href="/scheduler" className="col-span-1">
+              <div className="glass-panel rounded-[2rem] p-4 h-32 flex flex-col items-center justify-center gap-3 hover:bg-white/10 hover:scale-[1.02] transition-all cursor-pointer group">
+                <div className="p-3 rounded-full bg-pink-500/20 group-hover:bg-pink-500/30 transition-colors">
+                  <CalendarIcon className="h-6 w-6 text-pink-300" />
+                </div>
+                <span className="text-sm font-medium text-white/80">
+                  Calendar
+                </span>
+              </div>
+            </Link>
+            <Link href="/chat" className="col-span-1">
+              <div className="glass-panel rounded-[2rem] p-4 h-32 flex flex-col items-center justify-center gap-3 hover:bg-white/10 hover:scale-[1.02] transition-all cursor-pointer group">
+                <div className="p-3 rounded-full bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                  <Users className="h-6 w-6 text-purple-300" />
+                </div>
+                <span className="text-sm font-medium text-white/80">
+                  Groups
+                </span>
+              </div>
+            </Link>
+            <Link href="/settings" className="col-span-1">
+              <div className="glass-panel rounded-[2rem] p-4 h-32 flex flex-col items-center justify-center gap-3 hover:bg-white/10 hover:scale-[1.02] transition-all cursor-pointer group">
+                <div className="p-3 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <Settings className="h-6 w-6 text-white/70" />
+                </div>
+                <span className="text-sm font-medium text-white/80">
+                  Settings
+                </span>
+              </div>
+            </Link>
+          </div>
         </motion.div>
       </div>
     </div>

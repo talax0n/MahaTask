@@ -50,41 +50,43 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
     setDeadline('');
   };
 
+  const inputClass = "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-white/20 focus:ring-white/10 transition-all duration-300 hover:bg-white/10 rounded-xl";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="title">Task Title</Label>
+        <Label htmlFor="title" className="text-white/70">Task Title</Label>
         <Input
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g., Complete Math Assignment"
           required
+          className={inputClass}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description" className="text-white/70">Description</Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Add details about your task..."
-          className="resize-none"
-          rows={4}
+          className={`${inputClass} resize-none min-h-[120px]`}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="priority">Priority</Label>
+          <Label htmlFor="priority" className="text-white/70">Priority</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-            <SelectTrigger>
+            <SelectTrigger className={inputClass}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-black/90 border-white/10 text-white backdrop-blur-xl">
               {priorities.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
+                <SelectItem key={p.value} value={p.value} className="focus:bg-white/10 focus:text-white cursor-pointer">
                   {p.label}
                 </SelectItem>
               ))}
@@ -93,25 +95,27 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="deadline">Due Date</Label>
+          <Label htmlFor="deadline" className="text-white/70">Due Date</Label>
           <Input
             id="deadline"
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
+            className={`${inputClass} block`}
           />
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 pt-4">
+      <div className="flex justify-end gap-3 pt-6">
         <Button
           type="button"
           variant="outline"
           onClick={onClose}
+          className="border-white/10 bg-transparent text-white hover:bg-white/5 hover:text-white rounded-xl"
         >
           Cancel
         </Button>
-        <Button type="submit">
+        <Button type="submit" className="glass-button bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl px-8">
           Create Task
         </Button>
       </div>

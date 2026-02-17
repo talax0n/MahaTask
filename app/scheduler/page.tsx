@@ -17,8 +17,12 @@ export default function SchedulerPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex items-center justify-center h-screen bg-background relative overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="flex flex-col items-center gap-4 relative z-10">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading scheduler...</p>
         </div>
@@ -26,5 +30,15 @@ export default function SchedulerPage() {
     );
   }
 
-  return userId && <Scheduler userId={userId} />;
+  return (
+    <div className="space-y-8 relative min-h-screen">
+      {/* Ambient Glows */}
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
+      
+      <div className="relative z-10">
+        {userId && <Scheduler userId={userId} />}
+      </div>
+    </div>
+  );
 }
