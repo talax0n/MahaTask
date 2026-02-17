@@ -28,7 +28,7 @@ const priorities: { value: TaskPriority; label: string }[] = [
 export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
+  const [priority, setPriority] = useState<TaskPriority>('LOW');
   const [deadline, setDeadline] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,7 +46,7 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
     // Reset form
     setTitle('');
     setDescription('');
-    setPriority('MEDIUM');
+    setPriority('LOW');
     setDeadline('');
   };
 
