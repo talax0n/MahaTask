@@ -22,6 +22,7 @@ export const API_CONFIG = {
     TASKS: {
       GET_ALL: '/tasks',
       CREATE: '/tasks',
+      CREATE_GROUP: (groupId: string) => `/tasks/group/${groupId}`,
       UPDATE_STATUS: (id: string) => `/tasks/${id}/status`,
       UPDATE_PROGRESS: (id: string) => `/tasks/${id}/progress`,
       DELETE: (id: string) => `/tasks/${id}`,
@@ -40,6 +41,8 @@ export const API_CONFIG = {
     CHAT: {
       GET_GROUP_MESSAGES: (groupId: string) => `/chat/group/${groupId}`,
       GET_DIRECT_MESSAGES: (userId: string) => `/chat/dm/${userId}`,
+      GET_DIRECT_UNREAD_COUNTS: '/chat/dm/unread/counts',
+      MARK_DIRECT_READ: (userId: string) => `/chat/dm/${userId}/read`,
       SEND_MESSAGE: '/chat/messages',
     },
     
@@ -58,6 +61,11 @@ export const API_CONFIG = {
       GET_GROUPS: '/social/groups',
       CREATE_GROUP: '/social/groups',
       ADD_MEMBER: (groupId: string) => `/social/groups/${groupId}/members`,
+      LEAVE_GROUP: (groupId: string) => `/social/groups/${groupId}/leave`,
+      KICK_MEMBER: (groupId: string, memberId: string) => `/social/groups/${groupId}/members/${memberId}/remove`,
+      PROMOTE_MEMBER: (groupId: string, memberId: string) => `/social/groups/${groupId}/members/${memberId}/promote`,
+      DEMOTE_MEMBER: (groupId: string, memberId: string) => `/social/groups/${groupId}/members/${memberId}/demote`,
+      TRANSFER_ADMIN: (groupId: string) => `/social/groups/${groupId}/transfer-admin`,
     },
   },
 } as const;

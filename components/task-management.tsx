@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTasks } from '@/hooks/use-tasks';
+import { useSocial } from '@/hooks/use-social';
+import { useAuth } from '@/hooks/use-auth';
 import { Task, TaskStatus } from '@/lib/types';
 import { TaskList } from '@/components/task-list';
 import { TaskBoard } from '@/components/task-board';
@@ -15,6 +17,8 @@ import { toast } from 'sonner';
 
 export function TaskManagement() {
   const { tasks, loading, error, createTask, updateStatus, deleteTask } = useTasks();
+  const { groups } = useSocial();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
   const [activeFilter, setActiveFilter] = useState<TaskStatus | 'all'>('all');
@@ -22,7 +26,7 @@ export function TaskManagement() {
   const handleSubmit = async (taskData: any) => {
     const result = await createTask(taskData);
     if (result) {
-      toast.success('Task created successfully');
+      toast.success(taskData.groupId ? 'Group task created successfully' : 'Task created successfully');
       setShowForm(false);
     } else {
       toast.error('Failed to create task');
@@ -50,6 +54,13 @@ export function TaskManagement() {
     todo: tasks.filter(t => t.status === 'TODO').length,
     inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
   };
+
+  const groupTaskOptions = groups
+    .filter((group) => {
+      const membership = group.members?.find((member) => member.id === user?.id);
+      return membership?.role === 'ADMIN' || membership?.role === 'MODERATOR';
+    })
+    .map((group) => ({ id: group.id, name: group.name }));
 
   if (loading && tasks.length === 0) {
      return (
@@ -182,6 +193,7 @@ export function TaskManagement() {
             <TaskForm
               onSubmit={handleSubmit}
               onClose={() => setShowForm(false)}
+              groupOptions={groupTaskOptions}
             />
           </div>
         </SheetContent>

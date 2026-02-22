@@ -54,6 +54,7 @@ export interface Task {
   progress: number;
   dueDate?: string;
   scheduleId?: string;
+  groupId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,6 +65,7 @@ export interface CreateTaskRequest {
   priority?: TaskPriority;
   deadline?: string;
   scheduleId?: string;
+  groupId?: string;
 }
 
 export interface UpdateTaskStatusRequest {
@@ -137,6 +139,7 @@ export interface Message {
   groupId?: string;
   directMessageUserId?: string;
   recipientId?: string; // Backend DM field (alias for directMessageUserId)
+  readAt?: string | null;
   createdAt: string;
   sender?: {
     id: string;
@@ -170,7 +173,7 @@ export interface GroupMember {
   email: string;
   avatarUrl?: string;
   bio?: string;
-  role: 'ADMIN' | 'MEMBER';
+  role: 'ADMIN' | 'MODERATOR' | 'MEMBER';
   canCreateSchedule: boolean;
 }
 
@@ -186,7 +189,8 @@ export interface CreateGroupRequest {
 }
 
 export interface AddMemberRequest {
-  userId: string;
+  userId?: string;
+  userCode?: string;
   canCreateSchedule?: boolean;
 }
 

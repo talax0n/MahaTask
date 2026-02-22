@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search, Bell } from 'lucide-react';
+import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search, Bell, Video, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +25,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { VideoCallOverlay } from '@/components/video-call-overlay';
+import { VideoCallIncoming } from '@/components/video-call-incoming';
+import { decodeVideoCallSignal, encodeVideoCallSignal, type VideoCallSignalPayload } from '@/lib/video-call-signal';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
 
 type ConversationType = 'group' | 'direct';
 
@@ -47,11 +52,33 @@ export function FloatingChat() {
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [videoCallState, setVideoCallState] = useState<{
+    open: boolean;
+    type: ConversationType;
+    roomId: string;
+    title: string;
+  }>({
+    open: false,
+    type: 'group',
+    roomId: '',
+    title: '',
+  });
+  const [incomingCall, setIncomingCall] = useState<VideoCallSignalPayload | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [activeGroupCalls, setActiveGroupCalls] = useState<Record<string, { roomId: string; startedBy: string; startedAt: string }>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { user, loading } = useAuth();
   const { groups, friends, friendRequests, refreshGroups, refreshFriends, refreshFriendRequests, createGroup } = useSocial();
-  const { messages, loadGroupMessages, loadDirectMessages, sendMessage: sendMessageRest, clearMessages } = useChat();
+  const {
+    messages,
+    unreadDirectCounts,
+    loadGroupMessages,
+    loadDirectMessages,
+    sendMessage: sendMessageRest,
+    refreshUnreadDirectCounts,
+    markDirectMessagesAsRead,
+  } = useChat();
   const { isConnected, sendMessage: sendMessageWs, onMessage, onFriendRequest, joinConversation, leaveConversation } = useWebSocket();
 
   useEffect(() => {
@@ -80,9 +107,10 @@ export function FloatingChat() {
         loadGroupMessages(activeConversation.id);
       } else {
         loadDirectMessages(activeConversation.id);
+        void markDirectMessagesAsRead(activeConversation.id);
       }
     }
-  }, [activeConversation, loadGroupMessages, loadDirectMessages]);
+  }, [activeConversation, loadGroupMessages, loadDirectMessages, markDirectMessagesAsRead]);
 
   // Join/leave Socket.IO room when conversation changes so the server routes messages here.
   // isConnected is included so the join is re-emitted if the socket connects after the conversation was already selected.
@@ -95,7 +123,26 @@ export function FloatingChat() {
 
   // Sync messages from REST API with local state
   useEffect(() => {
-    setLocalMessages(messages);
+    const nextActiveGroupCalls: Record<string, { roomId: string; startedBy: string; startedAt: string }> = {};
+    messages.forEach((message) => {
+      const signal = decodeVideoCallSignal(message.content);
+      if (!signal || signal.callType !== 'group') return;
+      const groupId = message.groupId || signal.toConversationId;
+      if (!groupId) return;
+
+      if (signal.type === 'group-start') {
+        nextActiveGroupCalls[groupId] = {
+          roomId: signal.roomId,
+          startedBy: signal.fromUserName,
+          startedAt: signal.createdAt,
+        };
+      }
+      if (signal.type === 'group-end') {
+        delete nextActiveGroupCalls[groupId];
+      }
+    });
+    setActiveGroupCalls(nextActiveGroupCalls);
+    setLocalMessages(messages.filter((message) => !decodeVideoCallSignal(message.content)));
   }, [messages]);
 
   // Auto-scroll to newest message
@@ -103,11 +150,87 @@ export function FloatingChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [localMessages]);
 
+  const sendVideoSignal = async (
+    targetType: ConversationType,
+    targetId: string,
+    payload: VideoCallSignalPayload
+  ) => {
+    const content = encodeVideoCallSignal(payload);
+    if (isConnected) {
+      if (targetType === 'group') {
+        sendMessageWs(content, targetId);
+      } else {
+        sendMessageWs(content, undefined, targetId);
+      }
+      return;
+    }
+
+    if (targetType === 'group') {
+      await sendMessageRest(content, targetId);
+    } else {
+      await sendMessageRest(content, undefined, targetId);
+    }
+  };
+
   // WebSocket real-time message listener
   useEffect(() => {
     const handleNewMessage = (message: Message) => {
-      // Add message if it belongs to the active conversation
+      const callSignal = decodeVideoCallSignal(message.content);
+      if (callSignal) {
+        if (callSignal.callType === 'group') {
+          const groupId = message.groupId || callSignal.toConversationId;
+          if (!groupId) return;
+          if (callSignal.type === 'group-start') {
+            setActiveGroupCalls((prev) => ({
+              ...prev,
+              [groupId]: {
+                roomId: callSignal.roomId,
+                startedBy: callSignal.fromUserName,
+                startedAt: callSignal.createdAt,
+              },
+            }));
+          }
+          if (callSignal.type === 'group-end') {
+            setActiveGroupCalls((prev) => {
+              const next = { ...prev };
+              delete next[groupId];
+              return next;
+            });
+          }
+          return;
+        }
+
+        if (callSignal.type === 'invite' && callSignal.callType === 'direct' && callSignal.fromUserId !== user?.id) {
+          setIncomingCall(callSignal);
+        }
+        if (callSignal.type === 'decline' && callSignal.callType === 'direct' && callSignal.fromUserId !== user?.id) {
+          toast.info(`${callSignal.fromUserName} declined the call`);
+          setVideoCallState((prev) => ({ ...prev, open: false }));
+        }
+        if (callSignal.type === 'end' && callSignal.callType === 'direct' && callSignal.fromUserId !== user?.id) {
+          toast.info(`${callSignal.fromUserName} ended the call`);
+          setVideoCallState((prev) => ({ ...prev, open: false }));
+        }
+        return;
+      }
+
       if (activeConversation) {
+        if (!user) return;
+        const directPeerId =
+          message.senderId === user.id
+            ? (message.recipientId ?? message.directMessageUserId)
+            : message.senderId;
+        const isDirectMessage = Boolean(message.recipientId || message.directMessageUserId);
+        if (isDirectMessage && directPeerId && message.senderId !== user.id) {
+          const isActiveDirect =
+            activeConversation.type === 'direct' && activeConversation.id === directPeerId;
+          if (isActiveDirect) {
+            void markDirectMessagesAsRead(directPeerId);
+          } else {
+            void refreshUnreadDirectCounts();
+          }
+        }
+
         const isRelevant =
           (activeConversation.type === 'group' && message.groupId === activeConversation.id) ||
           (activeConversation.type === 'direct' && (
@@ -119,7 +242,6 @@ export function FloatingChat() {
         if (isRelevant) {
           setLocalMessages(prev => {
             if (prev.some(m => m.id === message.id)) return prev;
-            // Replace matching optimistic message from the same sender with the real one
             const tempIndex = prev.findIndex(
               m => m.id.startsWith('temp-') && m.senderId === message.senderId && m.content === message.content
             );
@@ -135,7 +257,7 @@ export function FloatingChat() {
     };
 
     return onMessage(handleNewMessage);
-  }, [activeConversation, onMessage]);
+  }, [activeConversation, onMessage, user, refreshUnreadDirectCounts, markDirectMessagesAsRead]);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversation) return;
@@ -144,18 +266,6 @@ export function FloatingChat() {
     setMessageInput('');
 
     if (isConnected) {
-      // Optimistic insert so the sender sees the message immediately
-      const optimistic: Message = {
-        id: `temp-${Date.now()}`,
-        senderId: user!.id,
-        content,
-        groupId: activeConversation.type === 'group' ? activeConversation.id : undefined,
-        directMessageUserId: activeConversation.type === 'direct' ? activeConversation.id : undefined,
-        createdAt: new Date().toISOString(),
-        sender: { id: user!.id, name: user!.name },
-      };
-      setLocalMessages(prev => [...prev, optimistic]);
-
       if (activeConversation.type === 'group') {
         sendMessageWs(content, activeConversation.id);
       } else {
@@ -200,7 +310,7 @@ export function FloatingChat() {
       name: f.name,
       type: 'direct' as ConversationType,
       avatarUrl: f.avatarUrl,
-      unreadCount: 0,
+      unreadCount: unreadDirectCounts[f.id] ?? 0,
       isOnline: Math.random() > 0.5, // Replace with real status
     })),
   ];
@@ -214,6 +324,116 @@ export function FloatingChat() {
     if (isToday(date)) return format(date, 'h:mm a');
     if (isYesterday(date)) return 'Yesterday';
     return format(date, 'MMM d');
+  };
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setMessageInput((prev) => `${prev}${emojiData.emoji}`);
+    setEmojiOpen(false);
+  };
+
+  const resolveParticipantName = (participantUserId: string) => {
+    if (participantUserId === user!.id) return `${user!.name} (You)`;
+    const friendMatch = friends.find((f) => f.id === participantUserId);
+    if (friendMatch) return friendMatch.name;
+    const groupMatch = groups
+      .flatMap((g) => g.members ?? [])
+      .find((m) => m.id === participantUserId);
+    if (groupMatch) return groupMatch.name;
+    return participantUserId;
+  };
+
+  const handleStartVideoCall = () => {
+    if (!activeConversation) return;
+    const now = new Date().toISOString();
+    let roomId = '';
+
+    if (activeConversation.type === 'group') {
+      const existingCall = activeGroupCalls[activeConversation.id];
+      roomId = existingCall?.roomId ?? `group-${activeConversation.id}`;
+      if (!existingCall) {
+        void sendVideoSignal('group', activeConversation.id, {
+          type: 'group-start',
+          roomId,
+          callType: 'group',
+          fromUserId: user!.id,
+          fromUserName: user!.name,
+          toConversationId: activeConversation.id,
+          createdAt: now,
+        });
+        setActiveGroupCalls((prev) => ({
+          ...prev,
+          [activeConversation.id]: {
+            roomId,
+            startedBy: user!.name,
+            startedAt: now,
+          },
+        }));
+      }
+    } else {
+      roomId = `dm-${[user!.id, activeConversation.id].sort().join('-')}`;
+      void sendVideoSignal('direct', activeConversation.id, {
+        type: 'invite',
+        roomId,
+        callType: 'direct',
+        fromUserId: user!.id,
+        fromUserName: user!.name,
+        toConversationId: activeConversation.id,
+        createdAt: now,
+      });
+    }
+
+    setVideoCallState({
+      open: true,
+      type: activeConversation.type,
+      roomId,
+      title: activeConversation.name,
+    });
+  };
+
+  const handleAnswerIncomingCall = () => {
+    if (!incomingCall) return;
+    setVideoCallState({
+      open: true,
+      type: incomingCall.callType,
+      roomId: incomingCall.roomId,
+      title: incomingCall.callType === 'group'
+        ? (groups.find((g) => g.id === incomingCall.toConversationId)?.name ?? incomingCall.fromUserName)
+        : incomingCall.fromUserName,
+    });
+    setIncomingCall(null);
+  };
+
+  const handleDeclineIncomingCall = () => {
+    if (!incomingCall || !user) return;
+    void sendVideoSignal(incomingCall.callType, incomingCall.toConversationId, {
+      type: 'decline',
+      roomId: incomingCall.roomId,
+      callType: incomingCall.callType,
+      fromUserId: user.id,
+      fromUserName: user.name,
+      toConversationId: incomingCall.toConversationId,
+      createdAt: new Date().toISOString(),
+    });
+    setIncomingCall(null);
+  };
+
+  const handleEndVideoCall = () => {
+    if (!activeConversation || !user) {
+      setVideoCallState((prev) => ({ ...prev, open: false }));
+      return;
+    }
+    if (activeConversation.type === 'direct') {
+      void sendVideoSignal('direct', activeConversation.id, {
+        type: 'end',
+        roomId: videoCallState.roomId,
+        callType: 'direct',
+        fromUserId: user.id,
+        fromUserName: user.name,
+        toConversationId: activeConversation.id,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    setVideoCallState((prev) => ({ ...prev, open: false }));
   };
 
   // Don't render if user is not authenticated or still loading
@@ -270,7 +490,6 @@ export function FloatingChat() {
                       className="h-8 w-8"
                       onClick={() => {
                         setActiveConversation(null);
-                        clearMessages();
                       }}
                     >
                       <ArrowLeft className="h-5 w-5" />
@@ -295,14 +514,26 @@ export function FloatingChat() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label={activeConversation.type === 'group' ? 'Start group video call' : 'Start direct video call'}
+                      title={activeConversation.type === 'group' ? 'Group Video Call' : 'Direct Video Call'}
+                      onClick={handleStartVideoCall}
+                    >
+                      <Video className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -403,6 +634,26 @@ export function FloatingChat() {
                       placeholder="Type a message..."
                       className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-8 text-sm"
                     />
+                    <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-full"
+                          title="Add Emoji"
+                        >
+                          <Smile className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 border-0 bg-transparent shadow-none" align="end">
+                        <EmojiPicker
+                          onEmojiClick={handleEmojiClick}
+                          autoFocusSearch={false}
+                          previewConfig={{ showPreview: false }}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -592,6 +843,23 @@ export function FloatingChat() {
           </div>
         </DialogContent>
       </Dialog>
+      <VideoCallOverlay
+        open={videoCallState.open}
+        callType={videoCallState.type}
+        roomId={videoCallState.roomId}
+        title={videoCallState.title}
+        currentUserId={user.id}
+        currentUserName={user.name}
+        resolveName={resolveParticipantName}
+        onClose={handleEndVideoCall}
+      />
+      <VideoCallIncoming
+        open={Boolean(incomingCall)}
+        callerName={incomingCall?.fromUserName ?? 'Unknown'}
+        callType={incomingCall?.callType ?? 'direct'}
+        onAnswer={handleAnswerIncomingCall}
+        onDecline={handleDeclineIncomingCall}
+      />
     </>
   );
 }

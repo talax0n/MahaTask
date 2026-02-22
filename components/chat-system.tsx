@@ -9,7 +9,7 @@ import { ChatMessages } from '@/components/chat-messages';
 import { ChatInput } from '@/components/chat-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Users, Search, MessageSquare, UserPlus, Copy, Check, Bell, User } from 'lucide-react';
+import { Plus, Users, Search, MessageSquare, UserPlus, Copy, Check, Bell, User, Video, UserMinus, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,6 +26,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from "sonner";
 import type { Message, Friend } from '@/lib/types';
+import { VideoCallOverlay } from '@/components/video-call-overlay';
+import { VideoCallIncoming } from '@/components/video-call-incoming';
+import { decodeVideoCallSignal, encodeVideoCallSignal, type VideoCallSignalPayload } from '@/lib/video-call-signal';
 
 type ConversationType = 'group' | 'direct';
 
@@ -41,6 +44,12 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
     friends,
     friendRequests,
     createGroup,
+    addMemberToGroup,
+    leaveGroup,
+    kickMember,
+    promoteMember,
+    demoteMember,
+    transferAdmin,
     refreshGroups,
     requestFriend,
     acceptRequest,
@@ -51,9 +60,12 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
 
   const {
     messages,
+    unreadDirectCounts,
     loadGroupMessages,
     loadDirectMessages,
     sendMessage: sendMessageRest,
+    refreshUnreadDirectCounts,
+    markDirectMessagesAsRead,
     loading: chatLoading
   } = useChat();
 
@@ -76,6 +88,24 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [activeTab, setActiveTab] = useState<'groups' | 'friends'>('groups');
+  const [isManageMembersOpen, setIsManageMembersOpen] = useState(false);
+  const [videoCallState, setVideoCallState] = useState<{
+    open: boolean;
+    type: ConversationType;
+    roomId: string;
+    title: string;
+  }>({
+    open: false,
+    type: 'group',
+    roomId: '',
+    title: '',
+  });
+  const [incomingCall, setIncomingCall] = useState<VideoCallSignalPayload | null>(null);
+  const [activeGroupCalls, setActiveGroupCalls] = useState<Record<string, {
+    roomId: string;
+    startedBy: string;
+    startedAt: string;
+  }>>({});
 
   // Initial load
   useEffect(() => {
@@ -106,40 +136,30 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
 
   // Sync messages from REST API with local state
   useEffect(() => {
-    setLocalMessages(messages);
-  }, [messages]);
+    const nextActiveGroupCalls: Record<string, { roomId: string; startedBy: string; startedAt: string }> = {};
 
-  // WebSocket real-time message listener
-  useEffect(() => {
-    const handleNewMessage = (message: Message) => {
-      if (!selectedConversationId) return;
-      const isRelevant =
-        (selectedConversationType === 'group' && message.groupId === selectedConversationId) ||
-        (selectedConversationType === 'direct' && (
-          message.directMessageUserId === selectedConversationId ||
-          message.recipientId === selectedConversationId ||
-          message.senderId === selectedConversationId
-        ));
+    messages.forEach((message) => {
+      const signal = decodeVideoCallSignal(message.content);
+      if (!signal || signal.callType !== 'group') return;
+      const groupId = message.groupId || signal.toConversationId;
+      if (!groupId) return;
 
-      if (isRelevant) {
-        setLocalMessages(prev => {
-          if (prev.some(m => m.id === message.id)) return prev;
-          // Replace matching optimistic message from the same sender with the real one
-          const tempIndex = prev.findIndex(
-            m => m.id.startsWith('temp-') && m.senderId === message.senderId && m.content === message.content
-          );
-          if (tempIndex !== -1) {
-            const next = [...prev];
-            next[tempIndex] = message;
-            return next;
-          }
-          return [...prev, message];
-        });
+      if (signal.type === 'group-start') {
+        nextActiveGroupCalls[groupId] = {
+          roomId: signal.roomId,
+          startedBy: signal.fromUserName,
+          startedAt: signal.createdAt,
+        };
       }
-    };
 
-    return onMessage(handleNewMessage);
-  }, [selectedConversationId, selectedConversationType, onMessage]);
+      if (signal.type === 'group-end') {
+        delete nextActiveGroupCalls[groupId];
+      }
+    });
+
+    setActiveGroupCalls(nextActiveGroupCalls);
+    setLocalMessages(messages.filter((message) => !decodeVideoCallSignal(message.content)));
+  }, [messages]);
 
   // WebSocket real-time friend request listener
   useEffect(() => {
@@ -176,24 +196,13 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
   const handleSelectFriend = (friend: Friend) => {
     setSelectedConversationId(friend.id);
     setSelectedConversationType('direct');
+    void markDirectMessagesAsRead(friend.id);
   };
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversationId) return;
 
     if (isConnected) {
-      // Optimistic insert so the sender sees the message immediately
-      const optimistic: Message = {
-        id: `temp-${Date.now()}`,
-        senderId: userId,
-        content,
-        groupId: selectedConversationType === 'group' ? selectedConversationId : undefined,
-        directMessageUserId: selectedConversationType === 'direct' ? selectedConversationId : undefined,
-        createdAt: new Date().toISOString(),
-        sender: { id: userId, name: userName },
-      };
-      setLocalMessages(prev => [...prev, optimistic]);
-
       if (selectedConversationType === 'group') {
         sendMessageWs(content, selectedConversationId);
       } else {
@@ -207,6 +216,28 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
       }
     }
   };
+
+  const sendVideoSignal = useCallback(async (
+    targetType: ConversationType,
+    targetId: string,
+    payload: VideoCallSignalPayload
+  ) => {
+    const content = encodeVideoCallSignal(payload);
+    if (isConnected) {
+      if (targetType === 'group') {
+        sendMessageWs(content, targetId);
+      } else {
+        sendMessageWs(content, undefined, targetId);
+      }
+      return;
+    }
+
+    if (targetType === 'group') {
+      await sendMessageRest(content, targetId);
+    } else {
+      await sendMessageRest(content, undefined, targetId);
+    }
+  }, [isConnected, sendMessageWs, sendMessageRest]);
 
   const handleCopyCode = async () => {
     try {
@@ -285,6 +316,262 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
   const activeName = selectedConversationType === 'group'
     ? selectedGroup?.name
     : selectedFriend?.name;
+  const activeGroupCall = selectedConversationType === 'group' && selectedConversationId
+    ? activeGroupCalls[selectedConversationId]
+    : null;
+  const currentGroupMembership = selectedGroup?.members?.find((member) => member.id === userId);
+  const canManageMembers = currentGroupMembership?.role === 'ADMIN' || currentGroupMembership?.role === 'MODERATOR';
+  const canChangeRoles = currentGroupMembership?.role === 'ADMIN';
+  const groupMemberIds = new Set((selectedGroup?.members ?? []).map((member) => member.id));
+  const addableFriends = friends.filter((friend) => !groupMemberIds.has(friend.id));
+
+  const resolveParticipantName = useCallback((participantUserId: string) => {
+    if (participantUserId === userId) return `${userName} (You)`;
+    const friendMatch = friends.find((f) => f.id === participantUserId);
+    if (friendMatch) return friendMatch.name;
+    const groupMatch = groups
+      .flatMap((g) => g.members ?? [])
+      .find((m) => m.id === participantUserId);
+    if (groupMatch) return groupMatch.name;
+    return participantUserId;
+  }, [friends, groups, userId, userName]);
+
+  const handleStartVideoCall = useCallback(() => {
+    if (!selectedConversationId || !activeName) return;
+    const now = new Date().toISOString();
+    let roomId = '';
+
+    if (selectedConversationType === 'group') {
+      roomId = activeGroupCall?.roomId ?? `group-${selectedConversationId}`;
+      if (!activeGroupCall) {
+        void sendVideoSignal('group', selectedConversationId, {
+          type: 'group-start',
+          roomId,
+          callType: 'group',
+          fromUserId: userId,
+          fromUserName: userName,
+          toConversationId: selectedConversationId,
+          createdAt: now,
+        });
+        setActiveGroupCalls((prev) => ({
+          ...prev,
+          [selectedConversationId]: {
+            roomId,
+            startedBy: userName,
+            startedAt: now,
+          },
+        }));
+      }
+    } else {
+      roomId = `dm-${[userId, selectedConversationId].sort().join('-')}`;
+      void sendVideoSignal('direct', selectedConversationId, {
+        type: 'invite',
+        roomId,
+        callType: 'direct',
+        fromUserId: userId,
+        fromUserName: userName,
+        toConversationId: selectedConversationId,
+        createdAt: now,
+      });
+    }
+
+    setVideoCallState({
+      open: true,
+      type: selectedConversationType,
+      roomId,
+      title: activeName,
+    });
+  }, [selectedConversationId, selectedConversationType, activeName, userId, userName, sendVideoSignal, activeGroupCall]);
+
+  const handleAddFriendToSelectedGroup = useCallback(async (friendId: string) => {
+    if (!selectedGroup) return;
+    if (!friendId) {
+      toast.error('Invalid user');
+      return;
+    }
+    const ok = await addMemberToGroup(selectedGroup.id, { userId: friendId });
+    if (ok) {
+      toast.success('Member added', { description: 'User has been added to the group.' });
+    } else {
+      toast.error('Failed to add member');
+    }
+  }, [selectedGroup, addMemberToGroup]);
+
+  const handlePromoteMember = useCallback(async (memberId: string) => {
+    if (!selectedGroup) return;
+    const ok = await promoteMember(selectedGroup.id, memberId);
+    if (ok) toast.success('Member promoted', { description: 'Role updated to moderator.' });
+    else toast.error('Failed to promote member');
+  }, [selectedGroup, promoteMember]);
+
+  const handleDemoteMember = useCallback(async (memberId: string) => {
+    if (!selectedGroup) return;
+    const ok = await demoteMember(selectedGroup.id, memberId);
+    if (ok) toast.success('Member demoted', { description: 'Role updated to member.' });
+    else toast.error('Failed to demote member');
+  }, [selectedGroup, demoteMember]);
+
+  const handleTransferAdmin = useCallback(async (memberId: string) => {
+    if (!selectedGroup) return;
+    const ok = await transferAdmin(selectedGroup.id, memberId);
+    if (ok) toast.success('Admin transferred', { description: 'Admin role has been transferred.' });
+    else toast.error('Failed to transfer admin');
+  }, [selectedGroup, transferAdmin]);
+
+  const handleLeaveGroup = useCallback(async () => {
+    if (!selectedGroup) return;
+    const ok = await leaveGroup(selectedGroup.id);
+    if (ok) {
+      toast.success('You left the group');
+      setIsManageMembersOpen(false);
+      setSelectedConversationId(null);
+    } else {
+      toast.error('Failed to leave group');
+    }
+  }, [selectedGroup, leaveGroup]);
+
+  const handleKickMember = useCallback(async (memberId: string) => {
+    if (!selectedGroup) return;
+    const ok = await kickMember(selectedGroup.id, memberId);
+    if (ok) toast.success('Member kicked from group');
+    else toast.error('Failed to kick member');
+  }, [selectedGroup, kickMember]);
+
+  const handleAnswerIncomingCall = useCallback(() => {
+    if (!incomingCall) return;
+    setVideoCallState({
+      open: true,
+      type: incomingCall.callType,
+      roomId: incomingCall.roomId,
+      title: incomingCall.callType === 'group'
+        ? (groups.find((g) => g.id === incomingCall.toConversationId)?.name ?? incomingCall.fromUserName)
+        : incomingCall.fromUserName,
+    });
+    setIncomingCall(null);
+  }, [incomingCall, groups]);
+
+  const handleDeclineIncomingCall = useCallback(() => {
+    if (!incomingCall) return;
+    void sendVideoSignal(incomingCall.callType, incomingCall.toConversationId, {
+      type: 'decline',
+      roomId: incomingCall.roomId,
+      callType: incomingCall.callType,
+      fromUserId: userId,
+      fromUserName: userName,
+      toConversationId: incomingCall.toConversationId,
+      createdAt: new Date().toISOString(),
+    });
+    setIncomingCall(null);
+  }, [incomingCall, sendVideoSignal, userId, userName]);
+
+  const handleEndVideoCall = useCallback(() => {
+    setVideoCallState((prev) => {
+      if (prev.open && prev.type === 'direct' && selectedConversationId && selectedConversationType === 'direct') {
+        void sendVideoSignal('direct', selectedConversationId, {
+          type: 'end',
+          roomId: prev.roomId,
+          callType: 'direct',
+          fromUserId: userId,
+          fromUserName: userName,
+          toConversationId: selectedConversationId,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      return { ...prev, open: false };
+    });
+  }, [selectedConversationId, selectedConversationType, sendVideoSignal, userId, userName]);
+
+  // WebSocket real-time message listener
+  useEffect(() => {
+    const handleNewMessage = (message: Message) => {
+      const callSignal = decodeVideoCallSignal(message.content);
+      if (callSignal) {
+        if (callSignal.callType === 'group') {
+          const groupId = message.groupId || callSignal.toConversationId;
+          if (!groupId) return;
+          if (callSignal.type === 'group-start') {
+            setActiveGroupCalls((prev) => ({
+              ...prev,
+              [groupId]: {
+                roomId: callSignal.roomId,
+                startedBy: callSignal.fromUserName,
+                startedAt: callSignal.createdAt,
+              },
+            }));
+          }
+          if (callSignal.type === 'group-end') {
+            setActiveGroupCalls((prev) => {
+              const next = { ...prev };
+              delete next[groupId];
+              return next;
+            });
+          }
+          return;
+        }
+
+        if (callSignal.type === 'invite' && callSignal.callType === 'direct' && callSignal.fromUserId !== userId) {
+          setIncomingCall(callSignal);
+        }
+        if (callSignal.type === 'decline' && callSignal.callType === 'direct' && callSignal.fromUserId !== userId) {
+          toast.info(`${callSignal.fromUserName} declined the call`);
+          setVideoCallState((prev) => ({ ...prev, open: false }));
+        }
+        if (callSignal.type === 'end' && callSignal.callType === 'direct' && callSignal.fromUserId !== userId) {
+          toast.info(`${callSignal.fromUserName} ended the call`);
+          setVideoCallState((prev) => ({ ...prev, open: false }));
+        }
+        return;
+      }
+
+      const directPeerId =
+        message.senderId === userId
+          ? (message.recipientId ?? message.directMessageUserId)
+          : message.senderId;
+      const isDirectMessage = Boolean(message.recipientId || message.directMessageUserId);
+      if (isDirectMessage && directPeerId && message.senderId !== userId) {
+        const isActiveDirect =
+          selectedConversationType === 'direct' && selectedConversationId === directPeerId;
+        if (isActiveDirect) {
+          void markDirectMessagesAsRead(directPeerId);
+        } else {
+          void refreshUnreadDirectCounts();
+        }
+      }
+
+      if (!selectedConversationId) return;
+      const isRelevant =
+        (selectedConversationType === 'group' && message.groupId === selectedConversationId) ||
+        (selectedConversationType === 'direct' && (
+          message.directMessageUserId === selectedConversationId ||
+          message.recipientId === selectedConversationId ||
+          message.senderId === selectedConversationId
+        ));
+
+      if (isRelevant) {
+        setLocalMessages(prev => {
+          if (prev.some(m => m.id === message.id)) return prev;
+          const tempIndex = prev.findIndex(
+            m => m.id.startsWith('temp-') && m.senderId === message.senderId && m.content === message.content
+          );
+          if (tempIndex !== -1) {
+            const next = [...prev];
+            next[tempIndex] = message;
+            return next;
+          }
+          return [...prev, message];
+        });
+      }
+    };
+
+    return onMessage(handleNewMessage);
+  }, [
+    selectedConversationId,
+    selectedConversationType,
+    onMessage,
+    userId,
+    refreshUnreadDirectCounts,
+    markDirectMessagesAsRead,
+  ]);
 
   return (
     <div className="h-[calc(100vh-2rem)] flex gap-4 p-4 overflow-hidden">
@@ -569,7 +856,14 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 overflow-hidden">
-                      <div className="font-medium truncate">{friend.name}</div>
+                      <div className="font-medium truncate flex items-center gap-2">
+                        <span className="truncate">{friend.name}</span>
+                        {(unreadDirectCounts[friend.id] ?? 0) > 0 && (
+                          <Badge className="h-5 min-w-5 px-1.5 rounded-full text-[10px]">
+                            {unreadDirectCounts[friend.id]}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground truncate font-mono">{friend.userCode}</div>
                     </div>
                   </button>
@@ -616,10 +910,132 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {selectedConversationType === 'group' && activeGroupCall && (
+                  <Badge variant="outline" className="border-green-500/40 bg-green-500/10 text-green-500">
+                    Live Call
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size={selectedConversationType === 'group' ? 'sm' : 'icon'}
+                  className={cn(
+                    'text-muted-foreground hover:text-foreground',
+                    selectedConversationType === 'group' && 'gap-2'
+                  )}
+                  aria-label={
+                    selectedConversationType === 'group'
+                      ? (activeGroupCall ? 'Join group video call' : 'Start group video call')
+                      : 'Start direct video call'
+                  }
+                  title={
+                    selectedConversationType === 'group'
+                      ? (activeGroupCall ? 'Join Group Video Call' : 'Start Group Video Call')
+                      : 'Direct Video Call'
+                  }
+                  onClick={handleStartVideoCall}
+                >
+                  <Video className="h-5 w-5" />
+                  {selectedConversationType === 'group' && (
+                    <span className="text-xs">{activeGroupCall ? 'Join' : 'Start'}</span>
+                  )}
+                </Button>
                 {selectedConversationType === 'group' && (
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                    <Users className="h-5 w-5" />
-                  </Button>
+                  <Dialog open={isManageMembersOpen} onOpenChange={setIsManageMembersOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                        <Users className="h-5 w-5" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[560px]">
+                      <DialogHeader>
+                        <DialogTitle>Manage Members</DialogTitle>
+                        <DialogDescription>
+                          Add members and manage roles in this group.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      {selectedGroup && (
+                        <div className="space-y-4">
+                          {canManageMembers ? (
+                            <div className="space-y-2">
+                              <Label>Add from Friend List</Label>
+                              <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                                {addableFriends.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">
+                                    All friends are already in this group.
+                                  </p>
+                                ) : (
+                                  addableFriends.map((friend) => (
+                                    <div
+                                      key={friend.id}
+                                      className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="font-medium truncate">{friend.name}</p>
+                                        <p className="text-xs text-muted-foreground font-mono truncate">{friend.userCode}</p>
+                                      </div>
+                                      <Button size="sm" onClick={() => handleAddFriendToSelectedGroup(friend.id)}>
+                                        Add
+                                      </Button>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              You do not have permission to add members.
+                            </p>
+                          )}
+
+                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                            {selectedGroup.members.map((member) => (
+                              <div
+                                key={member.id}
+                                className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2"
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{member.name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">{member.role}</Badge>
+                                  {canManageMembers && member.id !== userId && (
+                                    <Button size="sm" variant="outline" onClick={() => handleKickMember(member.id)}>
+                                      <UserMinus className="h-3.5 w-3.5 mr-1" />
+                                      Kick
+                                    </Button>
+                                  )}
+                                  {canChangeRoles && member.id !== userId && member.role === 'MEMBER' && (
+                                    <Button size="sm" variant="outline" onClick={() => handlePromoteMember(member.id)}>
+                                      Promote
+                                    </Button>
+                                  )}
+                                  {canChangeRoles && member.id !== userId && member.role === 'MODERATOR' && (
+                                    <>
+                                      <Button size="sm" variant="outline" onClick={() => handleDemoteMember(member.id)}>
+                                        Demote
+                                      </Button>
+                                      <Button size="sm" onClick={() => handleTransferAdmin(member.id)}>
+                                        Transfer Admin
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="pt-2 border-t border-border/50">
+                            <Button variant="outline" className="w-full" onClick={handleLeaveGroup}>
+                              <LogOut className="h-4 w-4 mr-2" />
+                              Leave Group
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 )}
               </div>
             </div>
@@ -662,6 +1078,23 @@ export function ChatSystem({ userId, userCode, userName }: ChatSystemProps) {
           </div>
         )}
       </motion.div>
+      <VideoCallOverlay
+        open={videoCallState.open}
+        callType={videoCallState.type}
+        roomId={videoCallState.roomId}
+        title={videoCallState.title}
+        currentUserId={userId}
+        currentUserName={userName}
+        resolveName={resolveParticipantName}
+        onClose={handleEndVideoCall}
+      />
+      <VideoCallIncoming
+        open={Boolean(incomingCall)}
+        callerName={incomingCall?.fromUserName ?? 'Unknown'}
+        callType={incomingCall?.callType ?? 'direct'}
+        onAnswer={handleAnswerIncomingCall}
+        onDecline={handleDeclineIncomingCall}
+      />
     </div>
   );
 }

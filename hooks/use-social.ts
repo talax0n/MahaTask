@@ -26,6 +26,11 @@ interface UseSocialReturn {
   removeFriend: (friendId: string) => Promise<boolean>;
   createGroup: (request: CreateGroupRequest) => Promise<Group | null>;
   addMemberToGroup: (groupId: string, request: AddMemberRequest) => Promise<boolean>;
+  leaveGroup: (groupId: string) => Promise<boolean>;
+  kickMember: (groupId: string, memberId: string) => Promise<boolean>;
+  promoteMember: (groupId: string, memberId: string) => Promise<boolean>;
+  demoteMember: (groupId: string, memberId: string) => Promise<boolean>;
+  transferAdmin: (groupId: string, targetUserId: string) => Promise<boolean>;
   refreshFriends: () => Promise<void>;
   refreshFriendRequests: () => Promise<void>;
   refreshSentRequests: () => Promise<void>;
@@ -258,6 +263,88 @@ export function useSocial(): UseSocialReturn {
     }
   }, [refreshGroups]);
 
+  const promoteMember = useCallback(async (groupId: string, memberId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await apiClient.post<{ ok: boolean }>(
+        API_CONFIG.ENDPOINTS.SOCIAL.PROMOTE_MEMBER(groupId, memberId)
+      );
+      await refreshGroups();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to promote member');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshGroups]);
+
+  const leaveGroup = useCallback(async (groupId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await apiClient.post<{ ok: boolean }>(API_CONFIG.ENDPOINTS.SOCIAL.LEAVE_GROUP(groupId));
+      await refreshGroups();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to leave group');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshGroups]);
+
+  const kickMember = useCallback(async (groupId: string, memberId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await apiClient.post<{ ok: boolean }>(API_CONFIG.ENDPOINTS.SOCIAL.KICK_MEMBER(groupId, memberId));
+      await refreshGroups();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to kick member');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshGroups]);
+
+  const demoteMember = useCallback(async (groupId: string, memberId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await apiClient.post<{ ok: boolean }>(
+        API_CONFIG.ENDPOINTS.SOCIAL.DEMOTE_MEMBER(groupId, memberId)
+      );
+      await refreshGroups();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to demote member');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshGroups]);
+
+  const transferAdmin = useCallback(async (groupId: string, targetUserId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await apiClient.post<{ ok: boolean }>(
+        API_CONFIG.ENDPOINTS.SOCIAL.TRANSFER_ADMIN(groupId),
+        { targetUserId }
+      );
+      await refreshGroups();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to transfer admin');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshGroups]);
+
   return {
     friends,
     friendRequests,
@@ -272,6 +359,11 @@ export function useSocial(): UseSocialReturn {
     removeFriend,
     createGroup,
     addMemberToGroup,
+    leaveGroup,
+    kickMember,
+    promoteMember,
+    demoteMember,
+    transferAdmin,
     refreshFriends,
     refreshFriendRequests,
     refreshSentRequests,

@@ -164,13 +164,20 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange, viewMode = 'l
           </div>
 
           <div className="p-4 pt-0 mt-auto relative z-10">
-             <div className="border-t border-white/5 pt-3 flex items-center justify-between w-full text-xs text-white/40">
-              <div className={cn(
-                "flex items-center gap-1.5 font-medium px-2 py-1 rounded-md transition-colors",
-                isOverdue ? "text-red-400 bg-red-500/10" : "bg-white/5"
-              )}>
-                {isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                <span>{task.dueDate ? formatDate(task.dueDate) : 'No date'}</span>
+            <div className="border-t border-white/5 pt-3 flex items-center justify-between w-full text-xs text-white/40">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "flex items-center gap-1.5 font-medium px-2 py-1 rounded-md transition-colors",
+                  isOverdue ? "text-red-400 bg-red-500/10" : "bg-white/5"
+                )}>
+                  {isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                  <span>{task.dueDate ? formatDate(task.dueDate) : 'No date'}</span>
+                </div>
+                {task.groupId && (
+                  <Badge variant="outline" className="text-[10px] border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
+                    Group Task
+                  </Badge>
+                )}
               </div>
               
               {task.userId && (
@@ -248,6 +255,11 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange, viewMode = 'l
                 <CalendarIcon className="w-3.5 h-3.5" />
                 <span>{formatDate(task.dueDate)}</span>
               </div>
+             )}
+             {task.groupId && (
+              <Badge variant="outline" className="text-[10px] border-cyan-400/30 bg-cyan-500/10 text-cyan-300">
+                Group Task
+              </Badge>
              )}
           </div>
 

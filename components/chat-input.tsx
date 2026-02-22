@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Send, Paperclip, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -14,6 +15,7 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,6 +34,12 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     }
   };
 
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setMessage((prev) => `${prev}${emojiData.emoji}`);
+    setEmojiOpen(false);
+    inputRef.current?.focus();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 p-3 bg-secondary/50 backdrop-blur-md rounded-2xl border border-border/50 shadow-inner">
       <div className="flex gap-1">
@@ -44,20 +52,24 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         >
             <Paperclip className="h-5 w-5" />
         </Button>
-        <Popover>
+        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
           <PopoverTrigger asChild>
              <Button 
                 type="button" 
                 size="icon" 
                 variant="ghost" 
                 className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                title="Add Emoji (Not implemented)"
+                title="Add Emoji"
             >
                 <Smile className="h-5 w-5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-2 text-center text-sm text-muted-foreground">
-             Emoji picker coming soon!
+          <PopoverContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
+              autoFocusSearch={false}
+              previewConfig={{ showPreview: false }}
+            />
           </PopoverContent>
         </Popover>
       </div>

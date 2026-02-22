@@ -14,9 +14,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface GroupTaskOption {
+  id: string;
+  name: string;
+}
+
 interface TaskFormProps {
   onSubmit: (taskData: CreateTaskRequest) => void;
   onClose: () => void;
+  groupOptions?: GroupTaskOption[];
 }
 
 const priorities: { value: TaskPriority; label: string }[] = [
@@ -25,11 +31,13 @@ const priorities: { value: TaskPriority; label: string }[] = [
   { value: 'HIGH', label: 'High' },
 ];
 
-export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
+export function TaskForm({ onSubmit, onClose, groupOptions = [] }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('LOW');
   const [deadline, setDeadline] = useState('');
+  const [scope, setScope] = useState<'personal' | 'group'>('personal');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +48,7 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
       description: description.trim() || undefined,
       priority,
       deadline: deadline ? new Date(deadline).toISOString() : undefined,
+      groupId: scope === 'group' ? selectedGroupId : undefined,
     };
 
     onSubmit(taskData);
@@ -48,6 +57,8 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
     setDescription('');
     setPriority('LOW');
     setDeadline('');
+    setScope('personal');
+    setSelectedGroupId('');
   };
 
   const inputClass = "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-white/20 focus:ring-white/10 transition-all duration-300 hover:bg-white/10 rounded-xl";
@@ -79,6 +90,21 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
+          <Label htmlFor="scope" className="text-white/70">Task Scope</Label>
+          <Select value={scope} onValueChange={(v) => setScope(v as 'personal' | 'group')}>
+            <SelectTrigger className={inputClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-black/90 border-white/10 text-white backdrop-blur-xl">
+              <SelectItem value="personal" className="focus:bg-white/10 focus:text-white cursor-pointer">Personal</SelectItem>
+              <SelectItem value="group" className="focus:bg-white/10 focus:text-white cursor-pointer" disabled={groupOptions.length === 0}>
+                Group
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="priority" className="text-white/70">Priority</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
             <SelectTrigger className={inputClass}>
@@ -106,6 +132,24 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
         </div>
       </div>
 
+      {scope === 'group' && (
+        <div className="space-y-2">
+          <Label htmlFor="groupSelect" className="text-white/70">Target Group</Label>
+          <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+            <SelectTrigger className={inputClass}>
+              <SelectValue placeholder="Select group" />
+            </SelectTrigger>
+            <SelectContent className="bg-black/90 border-white/10 text-white backdrop-blur-xl">
+              {groupOptions.map((group) => (
+                <SelectItem key={group.id} value={group.id} className="focus:bg-white/10 focus:text-white cursor-pointer">
+                  {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="flex justify-end gap-3 pt-6">
         <Button
           type="button"
@@ -115,7 +159,11 @@ export function TaskForm({ onSubmit, onClose }: TaskFormProps) {
         >
           Cancel
         </Button>
-        <Button type="submit" className="glass-button bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl px-8">
+        <Button
+          type="submit"
+          disabled={scope === 'group' && !selectedGroupId}
+          className="glass-button bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl px-8"
+        >
           Create Task
         </Button>
       </div>

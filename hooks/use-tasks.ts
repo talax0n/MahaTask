@@ -47,7 +47,11 @@ export function useTasks(): UseTasksReturn {
 
   const createTask = useCallback(async (taskData: CreateTaskRequest) => {
     try {
-      const newTask = await apiClient.post<Task>(API_CONFIG.ENDPOINTS.TASKS.CREATE, taskData);
+      const endpoint = taskData.groupId
+        ? API_CONFIG.ENDPOINTS.TASKS.CREATE_GROUP(taskData.groupId)
+        : API_CONFIG.ENDPOINTS.TASKS.CREATE;
+      const payload = { ...taskData };
+      const newTask = await apiClient.post<Task>(endpoint, payload);
       setTasks(prev => [...prev, newTask]);
       return newTask;
     } catch (err) {
