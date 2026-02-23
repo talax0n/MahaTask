@@ -6,6 +6,8 @@ import { Message } from '@/lib/types'; // Import from types, not hooks
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { decodeChatAttachment } from '@/lib/chat-attachment';
+import { ChatAttachmentContent } from '@/components/chat-attachment-content';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -37,6 +39,7 @@ export function ChatMessages({ messages, currentUserId, isLoading }: ChatMessage
         {messages.map((message, idx) => {
           const isOwn = message.senderId === currentUserId;
           const showAvatar = !isOwn && (idx === 0 || messages[idx - 1].senderId !== message.senderId);
+          const attachment = decodeChatAttachment(message.content);
 
           return (
             <motion.div
@@ -82,7 +85,11 @@ export function ChatMessages({ messages, currentUserId, isLoading }: ChatMessage
                       : 'bg-secondary/80 text-foreground rounded-2xl rounded-tl-sm backdrop-blur-sm'
                   )}
                 >
-                  {message.content}
+                  {attachment ? (
+                    <ChatAttachmentContent attachment={attachment} isOwn={isOwn} />
+                  ) : (
+                    message.content
+                  )}
                 </div>
                 <span className={cn(
                     "text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-5 min-w-max",

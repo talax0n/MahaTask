@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search, Bell, Video, Smile } from 'lucide-react';
+import { MessageSquare, X, Send, Users, User, Plus, ArrowLeft, Search, Bell, Video, Smile, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -30,6 +30,10 @@ import { VideoCallIncoming } from '@/components/video-call-incoming';
 import { decodeVideoCallSignal, encodeVideoCallSignal, type VideoCallSignalPayload } from '@/lib/video-call-signal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
+import { buildAttachmentMessage, decodeChatAttachment } from '@/lib/chat-attachment';
+import { ChatAttachmentContent } from '@/components/chat-attachment-content';
+import { apiClient } from '@/lib/api-client';
+import { API_CONFIG } from '@/lib/api-config';
 
 type ConversationType = 'group' | 'direct';
 
@@ -65,8 +69,10 @@ export function FloatingChat() {
   });
   const [incomingCall, setIncomingCall] = useState<VideoCallSignalPayload | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [activeGroupCalls, setActiveGroupCalls] = useState<Record<string, { roomId: string; startedBy: string; startedAt: string }>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { user, loading } = useAuth();
   const { groups, friends, friendRequests, refreshGroups, refreshFriends, refreshFriendRequests, createGroup } = useSocial();
@@ -259,11 +265,8 @@ export function FloatingChat() {
     return onMessage(handleNewMessage);
   }, [activeConversation, onMessage, user, refreshUnreadDirectCounts, markDirectMessagesAsRead]);
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim() || !activeConversation) return;
-
-    const content = messageInput.trim();
-    setMessageInput('');
+  const sendRawMessage = async (content: string) => {
+    if (!content || !activeConversation) return;
 
     if (isConnected) {
       if (activeConversation.type === 'group') {
@@ -278,6 +281,13 @@ export function FloatingChat() {
         await sendMessageRest(content, undefined, activeConversation.id);
       }
     }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !activeConversation || isUploadingAttachment) return;
+    const content = messageInput.trim();
+    setMessageInput('');
+    await sendRawMessage(content);
   };
 
   const handleCreateGroup = async () => {
@@ -329,6 +339,39 @@ export function FloatingChat() {
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     setMessageInput((prev) => `${prev}${emojiData.emoji}`);
     setEmojiOpen(false);
+  };
+
+  const handlePickAttachment = () => {
+    if (!activeConversation || isUploadingAttachment) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleAttachmentChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setIsUploadingAttachment(true);
+    try {
+      const encodedAttachment = await buildAttachmentMessage(file, {
+        uploader: async (uploadFile) => {
+          const formData = new FormData();
+          formData.append('file', uploadFile);
+          const uploadResult = await apiClient.post<{ url: string }>(
+            API_CONFIG.ENDPOINTS.CHAT.UPLOAD_ATTACHMENT,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } },
+          );
+          return uploadResult.url;
+        },
+      });
+      await sendRawMessage(encodedAttachment);
+      toast.success('File berhasil dikirim');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal mengirim file');
+    } finally {
+      setIsUploadingAttachment(false);
+    }
   };
 
   const resolveParticipantName = (participantUserId: string) => {
@@ -568,6 +611,7 @@ export function FloatingChat() {
                   <div className="space-y-3">
                     {localMessages.map((message) => {
                       const isOwn = message.senderId === user?.id;
+                      const attachment = decodeChatAttachment(message.content);
                       return (
                         <motion.div
                           key={message.id}
@@ -591,7 +635,11 @@ export function FloatingChat() {
                                 {message.sender?.name}
                               </p>
                             )}
-                            <p>{message.content}</p>
+                            {attachment ? (
+                              <ChatAttachmentContent attachment={attachment} isOwn={isOwn} />
+                            ) : (
+                              <p>{message.content}</p>
+                            )}
                             <p
                               className={cn(
                                 'text-[10px] mt-1 opacity-60',
@@ -621,6 +669,12 @@ export function FloatingChat() {
 
                 {/* Message Input */}
                 <div className="p-3 border-t border-border bg-background/95 backdrop-blur-md shrink-0">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleAttachmentChange}
+                  />
                   <div className="flex items-center gap-2 bg-secondary/50 rounded-full px-3 py-2">
                     <Input
                       value={messageInput}
@@ -632,6 +686,7 @@ export function FloatingChat() {
                         }
                       }}
                       placeholder="Type a message..."
+                      disabled={isUploadingAttachment}
                       className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-8 text-sm"
                     />
                     <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
@@ -655,11 +710,22 @@ export function FloatingChat() {
                       </PopoverContent>
                     </Popover>
                     <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-full"
+                      title="Attach File (Max 50 KB)"
+                      onClick={handlePickAttachment}
+                      disabled={isUploadingAttachment}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    <Button
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 rounded-full"
                       onClick={handleSendMessage}
-                      disabled={!messageInput.trim()}
+                      disabled={!messageInput.trim() || isUploadingAttachment}
                     >
                       <Send className="h-4 w-4" />
                     </Button>

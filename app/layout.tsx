@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthGuard } from "@/components/auth-guard";
 import { AuthProvider } from "@/components/auth-provider";
 import { FloatingChat } from "@/components/floating-chat";
+import { ThemeInitializer } from "@/components/theme-initializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
       >
+        <ThemeInitializer />
         <AuthProvider>
           <SidebarProvider defaultOpen={true}>
             <AuthGuard>

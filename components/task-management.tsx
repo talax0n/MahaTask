@@ -5,23 +5,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTasks } from '@/hooks/use-tasks';
 import { useSocial } from '@/hooks/use-social';
 import { useAuth } from '@/hooks/use-auth';
-import { Task, TaskStatus } from '@/lib/types';
+import { Task, TaskStatus, TaskRecommendationItem } from '@/lib/types';
 import { TaskList } from '@/components/task-list';
 import { TaskBoard } from '@/components/task-board';
 import { TaskForm } from '@/components/task-form';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Plus, LayoutList, LayoutGrid, Loader2, CheckCircle2, Circle, Clock, Activity } from 'lucide-react';
+import { Plus, LayoutList, LayoutGrid, Loader2, CheckCircle2, Circle, Clock, Activity, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function TaskManagement() {
-  const { tasks, loading, error, createTask, updateStatus, deleteTask } = useTasks();
+  const { tasks, loading, error, createTask, updateStatus, deleteTask, getRecommendations } = useTasks();
   const { groups } = useSocial();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
   const [activeFilter, setActiveFilter] = useState<TaskStatus | 'all'>('all');
+  const [recommendations, setRecommendations] = useState<TaskRecommendationItem[]>([]);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
 
   const handleSubmit = async (taskData: any) => {
     const result = await createTask(taskData);
@@ -55,6 +57,27 @@ export function TaskManagement() {
     inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
   };
 
+  const handleGetTodayRecommendation = async () => {
+    setRecommendationLoading(true);
+    const result = await getRecommendations({
+      algorithm: 'weighted',
+      limit: 5,
+    });
+    setRecommendationLoading(false);
+
+    if (!result) {
+      toast.error('Gagal mengambil saran tugas');
+      return;
+    }
+
+    setRecommendations(result.recommendations);
+    if (result.recommendations.length === 0) {
+      toast.info('Tidak ada task aktif untuk direkomendasikan');
+      return;
+    }
+    toast.success('Saran tugas hari ini berhasil dibuat');
+  };
+
   const groupTaskOptions = groups
     .filter((group) => {
       const membership = group.members?.find((member) => member.id === user?.id);
@@ -79,6 +102,19 @@ export function TaskManagement() {
           <p className="text-white/60 text-lg">Manage your academic workload.</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            onClick={handleGetTodayRecommendation}
+            disabled={recommendationLoading}
+            variant="outline"
+            className="h-12 px-5 gap-2 rounded-xl border-white/20 bg-white/5 hover:bg-white/10 text-white"
+          >
+            {recommendationLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            Saran Hari Ini
+          </Button>
           <div className="bg-black/20 backdrop-blur-md p-1.5 rounded-xl border border-white/10 flex items-center shadow-inner">
             <Button
               variant="ghost"
@@ -103,6 +139,35 @@ export function TaskManagement() {
           </Button>
         </div>
       </div>
+
+      {recommendations.length > 0 && (
+        <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <h3 className="text-lg font-semibold text-white">Saran Prioritas Hari Ini</h3>
+          </div>
+          <div className="space-y-2">
+            {recommendations.map((item, index) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-white/10 bg-black/20 px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-white">
+                    {index + 1}. {item.title}
+                  </p>
+                  <span className="text-xs text-white/60">
+                    Score {(item.score * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <p className="text-sm text-white/60 mt-1">
+                  Priority {item.priority} | Progress {item.progress}% | Due {new Date(item.dueDate).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards - Liquid Glass Style */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

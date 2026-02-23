@@ -23,6 +23,7 @@ export const API_CONFIG = {
       GET_ALL: '/tasks',
       CREATE: '/tasks',
       CREATE_GROUP: (groupId: string) => `/tasks/group/${groupId}`,
+      GET_RECOMMENDATIONS: '/tasks/recommendations',
       UPDATE_STATUS: (id: string) => `/tasks/${id}/status`,
       UPDATE_PROGRESS: (id: string) => `/tasks/${id}/progress`,
       DELETE: (id: string) => `/tasks/${id}`,
@@ -44,6 +45,7 @@ export const API_CONFIG = {
       GET_DIRECT_UNREAD_COUNTS: '/chat/dm/unread/counts',
       MARK_DIRECT_READ: (userId: string) => `/chat/dm/${userId}/read`,
       SEND_MESSAGE: '/chat/messages',
+      UPLOAD_ATTACHMENT: '/chat/attachments',
     },
     
     // Social endpoints

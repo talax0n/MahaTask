@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from 'next-themes';
 import { 
   User, 
   Settings, 
@@ -41,7 +40,28 @@ type SettingsTab = 'profile' | 'account' | 'appearance' | 'notifications';
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme');
+    const initial = stored === 'light' ? 'light' : 'dark';
+    setTheme(initial);
+    if (initial === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const applyTheme = (nextTheme: 'light' | 'dark') => {
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -58,7 +78,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden light-readable">
       {/* Ambient Glows */}
       <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
@@ -128,7 +148,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-8 relative z-10">
                       <div className="relative group">
                         <Avatar className="h-28 w-28 border-4 border-white/10 shadow-2xl ring-4 ring-black/20">
-                          <AvatarImage src="/avatars/01.png" alt="@user" />
+                          <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || "user"} />
                           <AvatarFallback className="text-3xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                             {user?.name?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
@@ -256,47 +276,41 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <Label className="text-white/80">Theme Preference</Label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div 
+                        <div
                           className={cn(
                             "cursor-pointer rounded-2xl border-2 p-4 transition-all duration-300 flex flex-col items-center gap-3",
                             theme === 'light' 
                               ? "border-blue-400 bg-white/10 shadow-[0_0_20px_rgba(96,165,250,0.2)]" 
                               : "border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20"
                           )}
-                          onClick={() => setTheme('light')}
+                          onClick={() => applyTheme('light')}
                         >
                           <div className="p-4 rounded-full bg-white text-black mb-2 shadow-lg">
                             <Sun className="h-6 w-6" />
                           </div>
                           <span className="font-medium text-white">Light</span>
                         </div>
-                        <div 
+                        <div
                           className={cn(
                             "cursor-pointer rounded-2xl border-2 p-4 transition-all duration-300 flex flex-col items-center gap-3",
                             theme === 'dark' 
                               ? "border-blue-400 bg-white/10 shadow-[0_0_20px_rgba(96,165,250,0.2)]" 
                               : "border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20"
                           )}
-                          onClick={() => setTheme('dark')}
+                          onClick={() => applyTheme('dark')}
                         >
                           <div className="p-4 rounded-full bg-slate-950 text-white mb-2 shadow-lg border border-white/10">
                             <Moon className="h-6 w-6" />
                           </div>
                           <span className="font-medium text-white">Dark</span>
                         </div>
-                        <div 
-                          className={cn(
-                            "cursor-pointer rounded-2xl border-2 p-4 transition-all duration-300 flex flex-col items-center gap-3",
-                            theme === 'system' 
-                              ? "border-blue-400 bg-white/10 shadow-[0_0_20px_rgba(96,165,250,0.2)]" 
-                              : "border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20"
-                          )}
-                          onClick={() => setTheme('system')}
+                        <div
+                          className="cursor-not-allowed rounded-2xl border-2 p-4 transition-all duration-300 flex flex-col items-center gap-3 border-white/5 bg-white/5 opacity-60"
                         >
                           <div className="p-4 rounded-full bg-gradient-to-br from-white to-slate-900 text-slate-800 mb-2 shadow-lg">
                             <Laptop className="h-6 w-6" />
                           </div>
-                          <span className="font-medium text-white">System</span>
+                          <span className="font-medium text-white">System (Soon)</span>
                         </div>
                       </div>
                     </div>

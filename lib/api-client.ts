@@ -46,6 +46,9 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response) {
+      if (error.response.status === 401) {
+        removeToken();
+      }
       // Server responded with error status
       const errorMessage = (error.response.data as any)?.message || 
                         (error.response.data as any)?.error || 

@@ -17,23 +17,53 @@ body {
 
   /* Liquid Glass Utilities */
   .glass-panel {
-    @apply bg-white/5 backdrop-blur-[20px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
+    background: var(--glass-panel-bg);
+    border: 1px solid var(--glass-panel-border);
+    box-shadow: var(--glass-panel-shadow);
+    backdrop-filter: blur(20px);
   }
 
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/5 shadow-lg hover:bg-white/10 transition-all duration-500 hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] hover:-translate-y-1 hover:border-white/20;
+    background: var(--glass-card-bg);
+    border: 1px solid var(--glass-card-border);
+    box-shadow: var(--glass-card-shadow);
+    backdrop-filter: blur(16px);
+    transition: all 500ms;
+  }
+  .glass-card:hover {
+    background: var(--glass-card-bg-hover);
+    border-color: var(--glass-card-border-hover);
+    box-shadow: var(--glass-card-shadow-hover);
+    transform: translateY(-4px);
   }
   
   .glass-button {
-     @apply bg-white/5 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95;
+    background: var(--glass-button-bg);
+    border: 1px solid var(--glass-button-border);
+    color: var(--glass-button-text);
+    backdrop-filter: blur(12px);
+    transition: all 300ms;
+  }
+  .glass-button:hover {
+    background: var(--glass-button-bg-hover);
+    box-shadow: var(--glass-button-shadow-hover);
+  }
+  .glass-button:active {
+    transform: scale(0.95);
   }
 
   .glass-sidebar {
-    @apply bg-black/20 backdrop-blur-[30px] border-r border-white/5 shadow-[20px_0_40px_rgba(0,0,0,0.2)];
+    background: var(--glass-sidebar-bg);
+    border-right: 1px solid var(--glass-sidebar-border);
+    box-shadow: var(--glass-sidebar-shadow);
+    backdrop-filter: blur(30px);
   }
 
   .liquid-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white/80 to-white/50;
+    background-image: var(--liquid-text-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   /* Animations */
@@ -59,6 +89,61 @@ body {
 
 @layer base {
   :root {
+    --background: 220 30% 97%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 47% 11%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 215 28% 92%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 215 28% 92%;
+    --muted-foreground: 215 16% 35%;
+    --accent: 215 28% 92%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 86%;
+    --input: 214 32% 86%;
+    --ring: 222 47% 11%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 92%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 86%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --glass-panel-bg: rgba(255, 255, 255, 0.72);
+    --glass-panel-border: rgba(15, 23, 42, 0.12);
+    --glass-panel-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
+    --glass-card-bg: rgba(255, 255, 255, 0.68);
+    --glass-card-border: rgba(15, 23, 42, 0.08);
+    --glass-card-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --glass-card-bg-hover: rgba(255, 255, 255, 0.86);
+    --glass-card-border-hover: rgba(15, 23, 42, 0.16);
+    --glass-card-shadow-hover: 0 10px 30px rgba(15, 23, 42, 0.14);
+    --glass-button-bg: rgba(255, 255, 255, 0.64);
+    --glass-button-bg-hover: rgba(255, 255, 255, 0.86);
+    --glass-button-border: rgba(15, 23, 42, 0.18);
+    --glass-button-text: #0f172a;
+    --glass-button-shadow-hover: 0 0 18px rgba(15, 23, 42, 0.15);
+    --glass-sidebar-bg: rgba(255, 255, 255, 0.7);
+    --glass-sidebar-border: rgba(15, 23, 42, 0.1);
+    --glass-sidebar-shadow: 20px 0 40px rgba(15, 23, 42, 0.1);
+    --liquid-text-gradient: linear-gradient(90deg, #0f172a 0%, #1e293b 60%, #475569 100%);
+  }
+
+  .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -83,7 +168,6 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --radius: 0.75rem;
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -92,6 +176,25 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --glass-panel-bg: rgba(255, 255, 255, 0.05);
+    --glass-panel-border: rgba(255, 255, 255, 0.1);
+    --glass-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.36);
+    --glass-card-bg: rgba(255, 255, 255, 0.05);
+    --glass-card-border: rgba(255, 255, 255, 0.05);
+    --glass-card-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    --glass-card-bg-hover: rgba(255, 255, 255, 0.1);
+    --glass-card-border-hover: rgba(255, 255, 255, 0.2);
+    --glass-card-shadow-hover: 0 8px 32px rgba(31, 38, 135, 0.15);
+    --glass-button-bg: rgba(255, 255, 255, 0.05);
+    --glass-button-bg-hover: rgba(255, 255, 255, 0.15);
+    --glass-button-border: rgba(255, 255, 255, 0.1);
+    --glass-button-text: #ffffff;
+    --glass-button-shadow-hover: 0 0 20px rgba(255, 255, 255, 0.1);
+    --glass-sidebar-bg: rgba(0, 0, 0, 0.2);
+    --glass-sidebar-border: rgba(255, 255, 255, 0.05);
+    --glass-sidebar-shadow: 20px 0 40px rgba(0, 0, 0, 0.2);
+    --liquid-text-gradient: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 55%, rgba(255, 255, 255, 0.5) 100%);
   }
 }
 
@@ -101,7 +204,8 @@ body {
   }
   
   body {
-    @apply bg-[#030712] text-foreground antialiased selection:bg-indigo-500/30 overflow-hidden;
+    @apply text-foreground antialiased selection:bg-indigo-500/30 overflow-hidden;
+    background: hsl(var(--background));
   }
 
   /* Deep Midnight Background - Cleaner and subtle */
@@ -113,7 +217,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: -2;
-    background: 
+    background:
       radial-gradient(circle at 0% 0%, rgba(17, 24, 39, 0.15), transparent 60%),
       radial-gradient(circle at 100% 0%, rgba(15, 23, 42, 0.15), transparent 60%),
       radial-gradient(circle at 100% 100%, rgba(17, 24, 39, 0.15), transparent 60%),
@@ -125,10 +229,40 @@ body {
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: 
+    background:
       radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.03), transparent 70%);
     pointer-events: none;
   }
+
+  html:not(.dark) body::before {
+    background:
+      radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.08), transparent 55%),
+      radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.08), transparent 55%),
+      radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.07), transparent 55%),
+      radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.06), transparent 55%);
+  }
+
+  html:not(.dark) body::after {
+    background:
+      radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.7), transparent 68%);
+  }
+
+  /* Improve readability for light theme where components still use white-tinted utility classes */
+  html:not(.dark) .light-readable .text-white { color: #0f172a !important; }
+  html:not(.dark) .light-readable .text-white\/80 { color: rgba(15, 23, 42, 0.8) !important; }
+  html:not(.dark) .light-readable .text-white\/70 { color: rgba(15, 23, 42, 0.7) !important; }
+  html:not(.dark) .light-readable .text-white\/60 { color: rgba(15, 23, 42, 0.6) !important; }
+  html:not(.dark) .light-readable .text-white\/50 { color: rgba(15, 23, 42, 0.5) !important; }
+  html:not(.dark) .light-readable .text-white\/40 { color: rgba(15, 23, 42, 0.45) !important; }
+  html:not(.dark) .light-readable .text-white\/30 { color: rgba(15, 23, 42, 0.35) !important; }
+  html:not(.dark) .light-readable .text-white\/20 { color: rgba(15, 23, 42, 0.25) !important; }
+  html:not(.dark) .light-readable .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04) !important; }
+  html:not(.dark) .light-readable .bg-white\/10 { background-color: rgba(15, 23, 42, 0.08) !important; }
+  html:not(.dark) .light-readable .bg-black\/10 { background-color: rgba(15, 23, 42, 0.06) !important; }
+  html:not(.dark) .light-readable .bg-black\/20 { background-color: rgba(15, 23, 42, 0.08) !important; }
+  html:not(.dark) .light-readable .border-white\/5 { border-color: rgba(15, 23, 42, 0.08) !important; }
+  html:not(.dark) .light-readable .border-white\/10 { border-color: rgba(15, 23, 42, 0.12) !important; }
+  html:not(.dark) .light-readable .border-white\/20 { border-color: rgba(15, 23, 42, 0.18) !important; }
 }
 
 /* Custom Scrollbar for that minimal Mac look */
@@ -142,10 +276,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, hsl(var(--foreground)) 20%, transparent);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, hsl(var(--foreground)) 35%, transparent);
 }

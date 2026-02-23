@@ -76,6 +76,31 @@ export interface UpdateTaskProgressRequest {
   progress: number;
 }
 
+export interface TaskRecommendationItem {
+  id: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  progress: number;
+  dueDate: string;
+  groupId?: string | null;
+  score: number;
+  scoreBreakdown: {
+    urgency: number;
+    priority: number;
+    remainingWork: number;
+  };
+  estimatedMinutes: number;
+}
+
+export interface TaskRecommendationsResponse {
+  algorithmUsed: 'weighted' | 'knapsack';
+  generatedAt: string;
+  availableMinutes?: number;
+  recommendations: TaskRecommendationItem[];
+}
+
 // Schedule Types
 export type ScheduleType = 'STUDY' | 'EXAM' | 'ASSIGNMENT' | 'MEETING' | 'OTHER';
 export type ScheduleColor = 'RED' | 'BLUE' | 'GREEN' | 'YELLOW' | 'PURPLE' | 'ORANGE';
